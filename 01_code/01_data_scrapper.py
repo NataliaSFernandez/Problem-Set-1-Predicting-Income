@@ -62,8 +62,8 @@ df_final = pd.concat(dfs, ignore_index=True)
 print(df_final.head())
 print("Filas:", df_final.shape[0], "Columnas:", df_final.shape[1])
 
-df_final.to_csv("geih_2018_completo.csv", index=False, encoding="utf-8")
-print(" Guardado geih_2018_completo.csv")
+df_final.to_csv("00_data/raw/geih_2018_completo.csv", index=False, encoding="utf-8")
+print("Guardado geih_2018_completo.csv")
 
 
 

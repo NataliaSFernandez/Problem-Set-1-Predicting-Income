@@ -12,6 +12,9 @@ OUTPUTS:
   - 02_output/figures/outliers_income_boxplot.png
   - 02_output/tables/cleaning_summary.tex
 
+METODOLOGÍA:
+  - Basada en Cuadernos 1 (Missing Values) y 2 (Outliers)
+  - Cada decisión justificada
 ==============================================================================
 """
 

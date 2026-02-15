@@ -235,4 +235,8 @@ Este diccionario describe las variables utilizadas en el Problem Set 1. Se basa 
 
 ---
 
+Curso: Big Data y Machine Learning para Economía Aplicada (MECA 4107)  
+Institución: Universidad de los Andes  
+Semestre: 2026-10
 
+Última actualización: Febrero 2026

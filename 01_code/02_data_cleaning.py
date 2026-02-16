@@ -57,11 +57,11 @@ n_original = len(data_raw)
 vars_original = data_raw.shape[1]
 
 # ==============================================================================
-# PASO 2: EXPLORACIÓN INICIAL - VARIABLES CLAVE
+# PASO 2: ANÁLISIS DE MISSING VALUES - DATOS CRUDOS (ANTES DE FILTROS)
 # ==============================================================================
 
 print("\n" + "="*80)
-print("PASO 2: EXPLORACIÓN INICIAL - VARIABLES CLAVE")
+print("PASO 2: ANÁLISIS DE MISSING VALUES - DATOS CRUDOS")
 print("="*80)
 
 # Variables que necesitamos según el Problem Set
@@ -94,13 +94,36 @@ variables_clave = {
     'ocu': 'Ocupado (1=sí, 0=no)'
 }
 
-print("\nVerificando variables clave...")
-for var, desc in variables_clave.items():
-    if var in data_raw.columns:
-        missing_pct = (data_raw[var].isna().sum() / len(data_raw)) * 100
-        print(f"  {var:20s}: {missing_pct:5.1f}% missing - {desc}")
-    else:
-        print(f"  {var:20s}: NO ENCONTRADA - {desc}")
+# Calcular missings en variables clave ANTES de filtros
+missing_analysis_raw = pd.DataFrame({
+    'Variable': list(variables_clave.keys()),
+    'Missing_Count': [data_raw[var].isna().sum() if var in data_raw.columns else 0 
+                      for var in variables_clave.keys()],
+    'Missing_Pct': [(data_raw[var].isna().sum() / len(data_raw) * 100) if var in data_raw.columns else 0
+                    for var in variables_clave.keys()]
+})
+
+print("\nMissing values en DATOS CRUDOS (antes de filtros):")
+print(missing_analysis_raw.to_string(index=False))
+
+# Visualizar patrón de missings en DATOS CRUDOS
+print("\nGenerando heatmap de missings (datos crudos)...")
+fig, ax = plt.subplots(figsize=(12, 8))
+vars_to_plot = [v for v in variables_clave.keys() if v in data_raw.columns]
+missing_matrix = data_raw[vars_to_plot].isna()
+
+sns.heatmap(missing_matrix.T, 
+            cbar=True, 
+            cmap='YlOrRd',
+            yticklabels=vars_to_plot,
+            ax=ax)
+ax.set_title('Patrón de Missing Values - Variables Clave (DATOS CRUDOS)', fontsize=14, fontweight='bold')
+ax.set_xlabel('Observaciones (sample)', fontsize=12)
+ax.set_ylabel('Variables', fontsize=12)
+plt.tight_layout()
+plt.savefig("02_output/figures/missing_heatmap.png", dpi=300, bbox_inches='tight')
+plt.close()
+print("  Guardado: 02_output/figures/missing_heatmap.png")
 
 # ==============================================================================
 # PASO 3: FILTROS DE OBSERVACIONES
@@ -142,15 +165,15 @@ print(f"  Eliminadas: {n_before - len(data_filtered):,} obs (ingresos cero/negat
 print(f"\nFiltros aplicados. N final: {len(data_filtered):,} observaciones")
 
 # ==============================================================================
-# PASO 4: ANÁLISIS DE MISSING VALUES
+# PASO 4: ANÁLISIS DE MISSING VALUES POST-FILTROS
 # ==============================================================================
 
 print("\n" + "="*80)
-print("PASO 4: ANÁLISIS DE MISSING VALUES")
+print("PASO 4: ANÁLISIS DE MISSING VALUES POST-FILTROS")
 print("="*80)
 
-# Calcular missings en variables clave
-missing_analysis = pd.DataFrame({
+# Calcular missings después de filtros
+missing_analysis_filtered = pd.DataFrame({
     'Variable': list(variables_clave.keys()),
     'Missing_Count': [data_filtered[var].isna().sum() if var in data_filtered.columns else 0 
                       for var in variables_clave.keys()],
@@ -158,27 +181,8 @@ missing_analysis = pd.DataFrame({
                     for var in variables_clave.keys()]
 })
 
-print("\nMissing values en variables clave:")
-print(missing_analysis.to_string(index=False))
-
-# Visualizar patrón de missings
-print("\nGenerando heatmap de missings...")
-fig, ax = plt.subplots(figsize=(12, 8))
-vars_to_plot = [v for v in variables_clave.keys() if v in data_filtered.columns]
-missing_matrix = data_filtered[vars_to_plot].isna()
-
-sns.heatmap(missing_matrix.T, 
-            cbar=True, 
-            cmap='YlOrRd',
-            yticklabels=vars_to_plot,
-            ax=ax)
-ax.set_title('Patrón de Missing Values - Variables Clave', fontsize=14, fontweight='bold')
-ax.set_xlabel('Observaciones (sample)', fontsize=12)
-ax.set_ylabel('Variables', fontsize=12)
-plt.tight_layout()
-plt.savefig("02_output/figures/missing_heatmap.png", dpi=300, bbox_inches='tight')
-plt.close()
-print("  Guardado: 02_output/figures/missing_heatmap.png")
+print("\nMissing values DESPUÉS de filtros:")
+print(missing_analysis_filtered.to_string(index=False))
 
 # ==============================================================================
 # PASO 5: IMPUTACIÓN DE MISSING VALUES
@@ -213,6 +217,8 @@ if 'totalHoursWorked' in data_filtered.columns:
         print(f"   Método: Mediana por sexo")
         print(f"   - Mujeres: {median_female:.1f} horas")
         print(f"   - Hombres: {median_male:.1f} horas")
+    else:
+        print(f"\n2. Horas trabajadas: 0 missings, no requiere imputación")
 
 # DECISIÓN 3: Imputar variables categóricas con moda
 categorical_vars = ['relab', 'sizeFirm', 'maxEducLevel', 'oficio', 'p6240']

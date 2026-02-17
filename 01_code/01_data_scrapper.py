@@ -31,11 +31,11 @@ from bs4 import BeautifulSoup
 
 dfs = []  
 
-for num in range(1, 6):  # 1 a 5
+for num in range(1, 11):  # 1 a 11
     url = f"https://ignaciomsarmiento.github.io/GEIH2018_sample/pages/geih_page_{num}.html"
     headers = {"User-Agent": "Mozilla/5.0"}
 
-    r = requests.get(url, headers=headers, timeout=30)
+    r = requests.get(url, headers=headers)
     print(f"Página {num}: {r.status_code}")
     r.raise_for_status()
 

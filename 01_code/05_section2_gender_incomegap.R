@@ -28,7 +28,6 @@ suppressMessages({
   library(boot)
 })
 
-
 # ==============================================================================
 # PASO 1: CARGAR DATOS
 # ==============================================================================
@@ -47,24 +46,37 @@ cat(sprintf("  Variables: %d\n", ncol(data1)))
 # PASO 2: DEFINIR FUNCIONES 
 # ==============================================================================
 
+cat("\n================================================================================\n")
+cat("PASO 2: DEFINICIÓN DE FUNCIONES\n")
+cat("================================================================================\n")
+
 # 2.1 Función incondicional log(w)=beta_0+beta_1*Female+u
 
 run_gender_model <- function(df) {
   model <- lm(log_income ~ female, data = df)
-  return(model)
+  return(model) # nolint
 }
 
-# 2.2 Gap condicional con controles con FWL
+#2.2 Gap condicional con controles 
+run_gender_model_controlled <- function(df){
+  model<- lm(log_income ~ female +
+              age + age_squared +
+              totalHoursWorked +
+              factor(relab) +
+              factor(maxEducLevel),
+              data = data1)
+  return(model) # nolint
+}
 
-controls_A <- c("age", "age_squared", "totalHoursWorked", "factor(relab)", "factor(maxEducLevel)")
+# 2.3 Gap condicional con controles con FWL
 
 run_fwl_gender <- function(df,
                            y = "log_income",
                            g = "female",
-                           controls = c("age", "age_squared", "totalHoursWorked", "factor(relab)", "factor(maxEducLevel)","estrato1")) {
+                           controls = c("age", "age_squared", "totalHoursWorked", "factor(relab)", "factor(maxEducLevel)")) { # nolint: line_length_linter.
 
   # quitar NAs en variables relevantes
-  df2 <- df[, unique(c(y, g, "age", "age_squared", "totalHoursWorked", "relab"))]
+  df2 <- df[, unique(c(y, g, "age", "age_squared", "totalHoursWorked", "relab", "maxEducLevel"))] # nolint: line_length_linter.
   df2 <- na.omit(df2)
 
   # construir fórmulas
@@ -91,8 +103,9 @@ run_fwl_gender <- function(df,
   return(out)
 }
 
-# 2.3 Modelo FWL 
 # 2.4 Bootstrap del gender coefficient
+
+
 # 2.5 Perfiles edad-ingreso por género
 # 2.6 Peak age por género
 
@@ -100,5 +113,15 @@ cat("\n=========================================================================
 cat("PASO 3: EJECUCIÓN DE FUNCIONES\n")
 cat("================================================================================\n")
 
+# 2.1 Función incondicional log(w)=beta_0+beta_1*Female+u
 model1 <- run_gender_model(data1)
 summary(model1)
+
+#2.2 Gap condicional con controles 
+model2 <- run_gender_model_controlled(data1)
+summary(model2)
+
+# 2.3 Gap condicional con controles con FWL 
+res_fwl <- run_fwl_gender(data1)
+res_fwl$beta_female
+res_fwl$se_analytic

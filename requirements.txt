@@ -1,4 +1,11 @@
+python 
+
 streamlit
 pandas
 python-docx
 openpyxl
+jinja2
+
+
+R
+library(ggplot2)

@@ -36,7 +36,6 @@
 #
 ################################################################################
 
-
 # Limpiar entorno
 rm(list = ls())
 
@@ -79,9 +78,110 @@ cat(sprintf("  Observaciones: %s\n", format(nobs(model1), big.mark=",")))
 cat(sprintf("  R²: %.4f\n", summary(model1)$r.squared))
 cat(sprintf("  R² ajustado: %.4f\n", summary(model1)$adj.r.squared))
 
-cat("\n================================================================================\n")
-cat("PASO 3: REGRESIÓN CONDICIONAL SIN FWL\n")
-cat("================================================================================\n") # nolint: line_length_linter.
+cat("\n================================================================================\n") # nolint: line_length_linter.
+cat("PASO 3: REGRESIÓN FWL\n")
+cat("================================================================================\n") # nolint
+
+#  Gap condicional con controles con FWL
+
+run_fwl_gender <- function(df, control_list,
+                          y = "log_income",
+                          g = "female") {
+  
+  results <- list()
+  
+  for (i in seq_along(control_list)) {
+    
+    controls <- control_list[[i]]
+    controls_str <- paste(controls, collapse = " + ")
+    
+    formula_str <- paste(y, "~", g, "+", controls_str)
+    f <- as.formula(formula_str)
+    
+    model <- lm(f, data = df)
+    summ <- summary(model)
+    
+    results[[i]] <- data.frame(
+      model_id = paste0("M", i),
+      controls = paste(controls, collapse = ", "),
+      n = nobs(model),
+      beta_female = coef(model)[g],
+      se_female = summ$coefficients[g, "Std. Error"],
+      p_value = summ$coefficients[g, "Pr(>|t|)"],
+      adj_r2 = summ$adj.r.squared,
+      aic = AIC(model)
+    )
+  }
+  
+  final_results <- do.call(rbind, results)
+  return(final_results)
+}
+
+#Controles 
+control_sets <- list(
+c("age", "age_squared", "factor(maxEducLevel)"), #Baseline
+c("age", "age_squared", "factor(maxEducLevel)", "totalHoursWorked"), #Intensidad laboral
+c("age", "age_squared", "factor(maxEducLevel)", "totalHoursWorked", "factor(relab)","factor(oficio)"), #Estructura oupacional
+c("age", "age_squared", "factor(maxEducLevel)", "totalHoursWorked", "factor(relab)","factor(oficio)",
+"factor(sizeFirm)","formal", "p6426") #Empresa y formalidad
+)
+
+model_comparison <- run_fwl_gender(data, control_sets)
+model_comparison[order(-model_comparison$adj_r2), ]
+
+tab <- model_comparison
+
+
+tab$rank_adj_r2 <- rank(-tab$adj_r2, ties.method = "min")  # 1 = mejor
+tab$rank_aic    <- rank(tab$aic, ties.method = "min")     
+# Ranking combinado (puedes ponderar como quieras)
+tab$rank_total <- tab$rank_adj_r2 + tab$rank_aic
+
+tab <- tab[order(tab$rank_total), ]
+
+tab$beta_female <- round(tab$beta_female, 4)
+tab$se_female   <- round(tab$se_female, 4)
+tab$adj_r2      <- round(tab$adj_r2, 4)
+tab$aic         <- round(tab$aic, 2)
+tab$p_value     <- signif(tab$p_value, 3)
+
+print(tab[, c("model_id","n","beta_female","se_female","p_value","adj_r2","aic",
+              "rank_adj_r2","rank_aic","rank_total","controls")],
+      row.names = FALSE)
+
+tab_export <- tab[, c("model_id","beta_female","se_female",
+                      "adj_r2","aic")]
+
+tabla_png <- tab_export |>
+  gt() |>
+  tab_header(
+    title = "Comparación modelos",
+    subtitle = "Ordenados por ranking combinado (Adj. R² + AIC)"
+  ) |>
+  cols_label(
+    model_id = "Modelo",
+    beta_female = "Beta (female)",
+    se_female = "SE",
+    adj_r2 = "Adj. R²",
+    aic = "AIC",
+  ) |>
+  fmt_number(
+    columns = c(beta_female, se_female, adj_r2),
+    decimals = 4
+  ) |>
+  fmt_number(
+    columns = aic,
+    decimals = 2
+  )
+
+gtsave(tabla_png,
+       filename = "model_comparison.png",
+       path = "02_output/tables/05_section2_gap")
+
+
+cat("\n================================================================================\n") # nolint
+cat("PASO 4: REGRESIÓN CONDICIONAL SIN FWL\n")
+cat("================================================================================\n") # nolint
 
 # Gap condicional con controles 
 # Se usa para verificar con el modelo con FWL 
@@ -89,62 +189,15 @@ model2<- lm(log_income ~ female +
               age + age_squared +
               totalHoursWorked +
               factor(relab) + #factor para variables categoricasd
-              factor(maxEducLevel),
+              factor(maxEducLevel)+
+              factor(oficio)+factor(sizeFirm)+formal+p6426
               data = data)
 
-cat("\nModelo 2: log(ingreso) = β0 + β1*Female + β2*age + β3*Age2 + β4*Hours+ gamma(Relab)+ sigma(Educ)+u_i\n") 
+cat("\nModelo 2: log(ingreso) = β0 + β1*Female + β2*age + β3*Age2 + β4*Hours+ gamma(Relab)+ sigma(Educ)+u_i\n")  # nolint
 cat(sprintf("  beta_1: %s\n",coef(model2)["female"] ,","))
 cat(sprintf("  Observaciones: %s\n", format(nobs(model2), big.mark=",")))
 cat(sprintf("  R²: %.4f\n", summary(model2)$r.squared))
 cat(sprintf("  R² ajustado: %.4f\n", summary(model2)$adj.r.squared))
-
-cat("\n================================================================================\n") # nolint: line_length_linter.
-cat("PASO 4: REGRESIÓN FWL\n")
-cat("================================================================================\n") # nolint
-
-#  Gap condicional con controles con FWL
-
-run_fwl_gender <- function(df,
-                           y = "log_income",
-                           g = "female",
-                           controls = c("age", "age_squared", "totalHoursWorked", "factor(relab)", "factor(maxEducLevel)")) { # nolint: line_length_linter.
-
-
-  # construir fórmulas de residualización
-  controls_str <- paste(controls, collapse = " + ")
-  f_g <- as.formula(paste(g, "~", controls_str)) # female ~ X
-  f_y <- as.formula(paste(y, "~", controls_str)) # log_income ~ X
-
-  # Paso 1: residualizar female y log_income respecto a X
-  g_res <- resid(lm(f_g, data = df))  # female residualizada
-  y_res <- resid(lm(f_y, data = df))  # log_income residualizado
-
-   # Paso 2: regresión de residuales
-  fwl <- lm(y_res ~ g_res)
-
-  # Resultados principales
-  out <- list(
-    n = nrow(df),
-    beta_female = coef(fwl)[["g_res"]],
-    se_analytic = summary(fwl)$coefficients["g_res", "Std. Error"],
-    t = summary(fwl)$coefficients["g_res", "t value"],
-    p = summary(fwl)$coefficients["g_res", "Pr(>|t|)"],
-    model = fwl
-  )
-  return(out)
-}
-
-# Ejecutar FWL
-res_fwl <- run_fwl_gender(data)
-beta_hat <- res_fwl$beta_female
-se_anal <- res_fwl$se_analytic
-
-# Imprimir resultados
-cat("\nModelo 3 (FWL): coeficiente de female controlando por X\n")
-cat(sprintf("  N: %s\n", format(res_fwl$n, big.mark=",")))
-cat(sprintf("  beta_female (FWL): %.4f\n", beta_hat))
-cat(sprintf("  SE analítico: %.4f\n", se_anal))
-cat(sprintf("  p-value: %.4g\n", res_fwl$p))
 
 # Check: FWL debe coincidir con el modelo completo (model2)
 cat("\nCheck FWL vs Modelo Condicional (OLS):\n")
@@ -152,10 +205,11 @@ cat(sprintf("  beta_female (OLS condicional): %.4f\n", coef(model2)["female"]))
 cat(sprintf("  beta_female (FWL):            %.4f\n", beta_hat))
 cat(sprintf("  Diferencia (debe ser ~0):     %.8f\n", coef(model2)["female"] - beta_hat)) # nolint
 
+#R2 ajustado y MSE 
 
-cat("\n================================================================================\n")
+cat("\n================================================================================\n") # nolint
 cat("PASO 5: BOOTSTRAP\n")
-cat("================================================================================\n")
+cat("================================================================================\n") # nolint
 
 set.seed(123)
 
@@ -199,7 +253,7 @@ cat(sprintf("beta_female (FWL): %.4f\n", beta_hat))
 cat(sprintf("SE analítico (OLS): %.4f\n", se_anal))
 cat(sprintf("SE bootstrap: %.4f\n", se_boot))
 
-
+#R2 ajustado y MSE
 cat("\n================================================================================\n")
 cat("PASO 6: TABLA COMPARATIVA\n")
 cat("================================================================================\n")
@@ -302,7 +356,7 @@ pred_data <- expand.grid(
 pred_data$age_squared <- pred_data$age^2
 pred_data$totalHoursWorked <- mean_hours
 pred_data$relab <- factor(base_relab, levels = levels(factor(data$relab)))
-pred_data$maxEducLevel <- factor(base_educ, levels = levels(factor(data$maxEducLevel)))
+pred_data$maxEducLevel <- factor(base_educ, levels = levels(factor(data$maxEducLevel))) # nolint
 
 # Predicción en log (y forzar numérico)
 pred_data$pred_log <- as.numeric(predict(model_interact, newdata = pred_data))
@@ -326,7 +380,7 @@ p <- ggplot(pred_data, aes(age, pred_income, color = gender)) +
   geom_text(
     data = peaks,
     aes(x = age, y = label_y,
-        label = paste0("Peak: age ", age, "\n", format(round(pred_income,0), big.mark=","))),
+        label = paste0("Peak: age ", age, "\n", format(round(pred_income,0), big.mark=","))), # nolint
     show.legend = FALSE
   ) +
   scale_y_continuous(expand = expansion(mult = c(0.05, 0.10))) +
@@ -338,11 +392,11 @@ print(p)
 ggsave("02_output/figures/05_section2_gap/05_age_labor_income_profiles.png",
        plot = p, width = 10, height = 6, dpi = 300)
 
-cat("\nGuardado: 02_output/figures/05_section2_gap/05_age_labor_income_profiles.png\n")
+cat("\nGuardado: 02_output/figures/05_section2_gap/05_age_labor_income_profiles.png\n")  # nolint
 
-cat("\n================================================================================\n")
+cat("\n================================================================================\n")  # nolint
 cat("PASO 9: IMPLIED PEAK AGES \n")
-cat("================================================================================\n")
+cat("================================================================================\n")  # nolint
 
 coefs <- coef(model_interact)
 

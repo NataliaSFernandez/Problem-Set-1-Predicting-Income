@@ -18,7 +18,6 @@
 # 6) El cálculo de la edad de máximo ingreso (peak age) para hombres y
 #    mujeres, junto con intervalos de confianza bootstrap.
 #
-# ENFOQUE ECONÓMICO:
 # Este análisis permite distinguir entre la brecha salarial bruta y la
 # brecha explicada por diferencias observables en características laborales
 # y de capital humano, contribuyendo a la discusión sobre el principio de
@@ -32,8 +31,8 @@
 #   - Tabla de edades pico (peak ages) por género
 #   - Gráfico de perfiles edad–ingreso predichos
 #   - Archivos exportados en:
-#       02_output/tables/
-#       02_output/figures/
+#       02_output/tables/05_section2_gap
+#       02_output/figures/05_section2_gap
 #
 ################################################################################
 
@@ -277,6 +276,7 @@ cat("\n=========================================================================
 cat("PASO 7: VISUALIZACIÓN PREDICTED AGE-LABOR INCOME PROFILES\n")
 cat("================================================================================\n") # nolint
 
+#revisar depronto hacer + graf con otra base relab y base educ
 model_interact <- lm(log_income ~ female*(age + age_squared) +
                      totalHoursWorked +
                      factor(relab) +
@@ -320,24 +320,17 @@ peaks <- pred_data %>%
   ungroup()
 
 # Plot
-p <- ggplot(pred_data, aes(x = age, y = pred_income, color = gender)) +
+p <- ggplot(pred_data, aes(age, pred_income, color = gender)) +
   geom_line(linewidth = 1.2) +
-  geom_point(data = peaks, aes(x = age, y = pred_income), size = 3) +
+  geom_point(data = peaks, size = 3) +
   geom_text(
     data = peaks,
-    aes(label = paste0("Peak: age ", age, "\n", format(round(pred_income, 0), big.mark=","))),
-    nudge_y = 30000,
+    aes(x = age, y = label_y,
+        label = paste0("Peak: age ", age, "\n", format(round(pred_income,0), big.mark=","))),
     show.legend = FALSE
   ) +
-  labs(
-    title = "Predicted Age–Labor Income Profiles",
-    x = "Age",
-    y = "Predicted Monthly Labor Income (COP)",
-    color = ""
-  ) +
-  theme_bw() +
-  theme(plot.title = element_text(hjust = 0.5),
-        legend.position = "right")
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.10))) +
+  theme_bw()
 
 print(p)
 # Guardar
@@ -359,6 +352,7 @@ b_age2 <- coefs["age_squared"]
 b_age_f <- coefs["female:age"]
 b_age2_f <- coefs["female:age_squared"]
 
+#Despues de derivar log(w)/Age
 peak_male <- -b_age / (2*b_age2)
 peak_female <- -(b_age + b_age_f) /
                (2*(b_age2 + b_age2_f))
@@ -369,6 +363,7 @@ cat("\nPeak age (Female):", peak_female)
 boot_peak_fun <- function(d, idx){
   dd <- d[idx,]
 
+#bootstrap intervalos de confianza
   m <- lm(log_income ~ female*(age + age_squared) +
           totalHoursWorked +
           factor(relab) +
@@ -421,5 +416,10 @@ stargazer(peak_table,
           digits = 2,
           rownames = FALSE,
           title = "Implied Peak Ages by Gender",
-          out = "02_output/tables/05_peak_ages_section2.tex")
+          out = "02_output/tables/05_section2_gap/05_peak_ages_section2.tex")
 
+
+ggsave("02_output/figures/05_section2_gap/05_peak_ages_section2.png",
+       plot = p, width = 10, height = 6, dpi = 300)
+
+cat("\nGuardado: 02_output/figures/05_section2_gap/05_peak_ages_section2.png\n")

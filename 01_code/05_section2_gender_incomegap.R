@@ -412,6 +412,8 @@ cat("\n=========================================================================
 cat("PASO 7: VISUALIZACIÓN PREDICTED AGE-LABOR INCOME PROFILES\n")
 cat("================================================================================\n") # nolint
 
+out_fig <- "02_output/figures/05_section2_gap"
+
 model_interact <- lm(
   log_income ~ female*(age + age_squared) +
     totalHoursWorked +
@@ -610,7 +612,6 @@ peak_table$CI_Lower <- round(peak_table$CI_Lower, 2)
 peak_table$CI_Upper <- round(peak_table$CI_Upper, 2)
 
 print(peak_table, row.names = FALSE)
-out_fig <- "02_output/figures/05_section2_gap"
 # Exportar TEX
 if (!requireNamespace("stargazer", quietly = TRUE)) install.packages("stargazer")
 stargazer::stargazer(peak_table,

@@ -1,15 +1,42 @@
 ################################################################################
-# PROBLEM SET 2: GENDER-LABOR Income Gap
-# Script 05: Gender-Labor Income Gap (Section 2)
+# PROBLEM SET 1: Predicting Income
+# Section 2: Gender–Labor Income Gap
+# Script 05: Gender_Labor_Income_Gap.R
 ################################################################################
-# OBJETIVO: Explorar si la relación edad-salario varia entre hombres y mujeres
-#  y por cuanto se le puede atribuir esta diferencia a diferencias observables e 
-# inexplicables
+# OBJETIVO:
+# Analizar la brecha de ingresos laborales entre hombres y mujeres en Bogotá
+# (GEIH 2018), evaluando:
 #
-# INPUTS:  00_data/cleaned/data_cleaned.csv
-# OUTPUTS: 
+# 1) La brecha incondicional (raw gender gap).
+# 2) La brecha condicional controlando por edad, horas trabajadas,
+#    tipo de vínculo laboral y nivel educativo.
+# 3) La descomposición del coeficiente de género utilizando el teorema
+#    Frisch–Waugh–Lovell (FWL).
+# 4) La estimación de errores estándar tanto analíticos (OLS) como por
+#    bootstrap.
+# 5) La comparación de perfiles edad–ingreso predichos por género.
+# 6) El cálculo de la edad de máximo ingreso (peak age) para hombres y
+#    mujeres, junto con intervalos de confianza bootstrap.
+#
+# ENFOQUE ECONÓMICO:
+# Este análisis permite distinguir entre la brecha salarial bruta y la
+# brecha explicada por diferencias observables en características laborales
+# y de capital humano, contribuyendo a la discusión sobre el principio de
+# “equal pay for equal work”.
+#
+# INPUT:
+#   - 00_data/cleaned/data_cleaned.csv
+#
+# OUTPUT:
+#   - Tabla comparativa de brecha incondicional y condicional
+#   - Tabla de edades pico (peak ages) por género
+#   - Gráfico de perfiles edad–ingreso predichos
+#   - Archivos exportados en:
+#       02_output/tables/
+#       02_output/figures/
 #
 ################################################################################
+
 
 # Limpiar entorno
 rm(list = ls())
@@ -19,6 +46,7 @@ if (!require(ggplot2)) install.packages("ggplot2")
 if (!require(stargazer)) install.packages("stargazer")
 if (!require(dplyr)) install.packages("dplyr")
 if (!require(boot)) install.packages("boot")
+if (!require(gt)) install.packages("boot")
 
 # Cargar librerías
 suppressMessages({
@@ -26,6 +54,7 @@ suppressMessages({
   library(ggplot2)
   library(stargazer)
   library(boot)
+  library(gt)
 })
 
 cat("\n================================================================================\n") # nolint
@@ -46,23 +75,26 @@ cat("===========================================================================
 
 model1 <- lm(log_income ~ female, data = data)
 cat("\nModelo 1: log(ingreso) = β0 + β1*female + u\n")
+cat(sprintf("  beta_1: %s\n",coef(model1)["female"] ,","))
 cat(sprintf("  Observaciones: %s\n", format(nobs(model1), big.mark=",")))
 cat(sprintf("  R²: %.4f\n", summary(model1)$r.squared))
 cat(sprintf("  R² ajustado: %.4f\n", summary(model1)$adj.r.squared))
 
 cat("\n================================================================================\n")
-cat("PASO 3: REGRESIÓN CONDICIONAL\n")
+cat("PASO 3: REGRESIÓN CONDICIONAL SIN FWL\n")
 cat("================================================================================\n") # nolint: line_length_linter.
 
 # Gap condicional con controles 
+# Se usa para verificar con el modelo con FWL 
 model2<- lm(log_income ~ female +
               age + age_squared +
               totalHoursWorked +
-              factor(relab) +
+              factor(relab) + #factor para variables categoricasd
               factor(maxEducLevel),
               data = data)
 
-cat("\nModelo 2: log(ingreso) = β0 + β1*age + β2*age²\n") #MODIFICARR
+cat("\nModelo 2: log(ingreso) = β0 + β1*Female + β2*age + β3*Age2 + β4*Hours+ gamma(Relab)+ sigma(Educ)+u_i\n") 
+cat(sprintf("  beta_1: %s\n",coef(model2)["female"] ,","))
 cat(sprintf("  Observaciones: %s\n", format(nobs(model2), big.mark=",")))
 cat(sprintf("  R²: %.4f\n", summary(model2)$r.squared))
 cat(sprintf("  R² ajustado: %.4f\n", summary(model2)$adj.r.squared))
@@ -79,19 +111,19 @@ run_fwl_gender <- function(df,
                            controls = c("age", "age_squared", "totalHoursWorked", "factor(relab)", "factor(maxEducLevel)")) { # nolint: line_length_linter.
 
 
-  # construir fórmulas
+  # construir fórmulas de residualización
   controls_str <- paste(controls, collapse = " + ")
-  f_g <- as.formula(paste(g, "~", controls_str))
-  f_y <- as.formula(paste(y, "~", controls_str))
+  f_g <- as.formula(paste(g, "~", controls_str)) # female ~ X
+  f_y <- as.formula(paste(y, "~", controls_str)) # log_income ~ X
 
-  # --- FWL ---
+  # Paso 1: residualizar female y log_income respecto a X
   g_res <- resid(lm(f_g, data = df))  # female residualizada
   y_res <- resid(lm(f_y, data = df))  # log_income residualizado
 
-  # regresión final (residuales)
+   # Paso 2: regresión de residuales
   fwl <- lm(y_res ~ g_res)
 
-  # devolver coef y SE analítico 
+  # Resultados principales
   out <- list(
     n = nrow(df),
     beta_female = coef(fwl)[["g_res"]],
@@ -103,24 +135,31 @@ run_fwl_gender <- function(df,
   return(out)
 }
 
-# 4 Gap condicional con controles con FWL 
+# Ejecutar FWL
 res_fwl <- run_fwl_gender(data)
-
 beta_hat <- res_fwl$beta_female
 se_anal <- res_fwl$se_analytic
 
-cat("\nModelo 3 FWL: log(ingreso) = β0 + β1*age + β2*age²\n") #MODIFICARR
-cat(sprintf("  Beta1: %s\n",beta_hat))
-cat(sprintf("  SE %.4f\n", se_anal))
+# Imprimir resultados
+cat("\nModelo 3 (FWL): coeficiente de female controlando por X\n")
+cat(sprintf("  N: %s\n", format(res_fwl$n, big.mark=",")))
+cat(sprintf("  beta_female (FWL): %.4f\n", beta_hat))
+cat(sprintf("  SE analítico: %.4f\n", se_anal))
+cat(sprintf("  p-value: %.4g\n", res_fwl$p))
+
+# Check: FWL debe coincidir con el modelo completo (model2)
+cat("\nCheck FWL vs Modelo Condicional (OLS):\n")
+cat(sprintf("  beta_female (OLS condicional): %.4f\n", coef(model2)["female"]))
+cat(sprintf("  beta_female (FWL):            %.4f\n", beta_hat))
+cat(sprintf("  Diferencia (debe ser ~0):     %.8f\n", coef(model2)["female"] - beta_hat)) # nolint
 
 
 cat("\n================================================================================\n")
 cat("PASO 5: BOOTSTRAP\n")
 cat("================================================================================\n")
 
-
-# 2.4 Bootstrap del gender coefficient
 set.seed(123)
+
 run_fwl_bootstrap <- function(df,
                               R = 500,
                               y = "log_income",
@@ -128,11 +167,12 @@ run_fwl_bootstrap <- function(df,
                               controls = c("age", "age_squared", "totalHoursWorked", # nolint
                                            "factor(relab)", "factor(maxEducLevel)")) { # nolint
 
-
-  controls_str <- paste(controls, collapse = " + ")
+  # 2) Fórmulas de residualización
+  controls_str <- paste(controls, collapse = " + ") #hace un string unido por un +
   f_g <- as.formula(paste(g, "~", controls_str))
   f_y <- as.formula(paste(y, "~", controls_str))
 
+  # 3) Estadístico bootstrap: beta_female vía FWL
   boot_fun <- function(d, idx) {
     dd <- d[idx, ]
 
@@ -145,56 +185,71 @@ run_fwl_bootstrap <- function(df,
   boot::boot(df, statistic = boot_fun, R = R)
 }
 
-#2.4 Bootstrap 
+# Ejecutar bootstrap
 boot_res <- run_fwl_bootstrap(data, R = 500)
+
+# SE bootstrap
 se_boot <- sd(boot_res$t)
+
+# IC percentil
 ci_boot <- boot::boot.ci(boot_res, type = c("perc", "basic"))
 
-cat("\n--- Resultados Gender Gap (Condicional con FWL) ---\n") #REVISARRR
-cat(sprintf("beta_female: %.4f\n", beta_hat))
+cat("\n--- Resultados Gender Gap (Condicional con FWL) ---\n")
+cat(sprintf("N (muestra efectiva): %s\n", format(res_fwl$n, big.mark=",")))
+cat(sprintf("beta_female (FWL): %.4f\n", beta_hat))
 cat(sprintf("SE analítico (OLS): %.4f\n", se_anal))
-cat(sprintf("SE bootstrap (sd betas): %.4f\n", se_boot))
-print(ci_boot)
+cat(sprintf("SE bootstrap: %.4f\n", se_boot))
+
 
 cat("\n================================================================================\n")
-cat("PASO 7: TABLA COMPARATIVA\n")
+cat("PASO 6: TABLA COMPARATIVA\n")
 cat("================================================================================\n")
 
-# Extraer coeficientes y SE
+# 1. Extraer coeficientes y SE
 # ===============================
 
-# Incondicional
+# Modelo 1 Incondicional
 beta_uncond <- coef(model1)["female"]
 se_uncond_anal <- summary(model1)$coefficients["female","Std. Error"]
 r2_uncond <- summary(model1)$r.squared
 
-# Bootstrap incondicional
+# Modelo 2 condicional
+# Beta y SE desde FWL
+beta_cond <- res_fwl$beta_female
+se_cond_anal <- res_fwl$se_analytic
+n_cond <- res_fwl$n
+
+# R² desde modelo completo
+r2_cond <- summary(model2)$r.squared
+
+# 2. Bootstrap incondicional
 boot_uncond_fun <- function(d, idx){
   dd <- d[idx,]
   coef(lm(log_income ~ female, data = dd))["female"]
 }
 
+set.seed(123)
 boot_uncond <- boot::boot(data, boot_uncond_fun, R = 500)
 se_uncond_boot <- sd(boot_uncond$t)
 
-# Condicional (modelo completo, no FWL)
-beta_cond <- coef(model2)["female"]
-se_cond_anal <- summary(model2)$coefficients["female","Std. Error"]
-r2_cond <- summary(model2)$r.squared
 
-# Bootstrap condicional (más simple que FWL)
+# 3. Bootstrap condicional 
+
 boot_cond_fun <- function(d, idx){
-  dd <- d[idx,]
+  dd <- d[idx, ]
   coef(lm(log_income ~ female +
-          age + age_squared +
-          totalHoursWorked +
-          factor(relab) +
-          factor(maxEducLevel),
+            age + age_squared +
+            totalHoursWorked +
+            factor(relab) +
+            factor(maxEducLevel),
           data = dd))["female"]
 }
 
+set.seed(123)
 boot_cond <- boot::boot(data, boot_cond_fun, R = 500)
 se_cond_boot <- sd(boot_cond$t)
+
+# 4. Tabla final
 
 results_table <- data.frame(
   Specification = c("Unconditional", "Conditional"),
@@ -204,21 +259,24 @@ results_table <- data.frame(
   R_squared = c(r2_uncond, r2_cond)
 )
 
-print(results_table)
-
 
 stargazer(results_table,
           summary = FALSE,
           digits = 4,
           rownames = FALSE,
           title = "Gender Labor Income Gap",
-          out = "02_output/tables/05_gender_gap_table.tex")
+          out = "02_output/tables/05_section2_gap/05_gender_gap_table.tex")
 
-cat("\nGuardado: 02_output/tables/05_gender_gap_table.tex\n")
+
+gt(results_table) %>%
+  gtsave("02_output/tables/05_section2_gap/05_gender_gap_table.png")
+
+cat("\nGuardado: 02_output/tables/05_section2_gap/05_gender_gap_table.tex\n")
 
 cat("\n================================================================================\n") # nolint
-cat("PASO 8: VISUALIZACIÓN PREDICTED AGE-LABOR INCOME PROFILES\n")
+cat("PASO 7: VISUALIZACIÓN PREDICTED AGE-LABOR INCOME PROFILES\n")
 cat("================================================================================\n") # nolint
+
 model_interact <- lm(log_income ~ female*(age + age_squared) +
                      totalHoursWorked +
                      factor(relab) +
@@ -232,8 +290,8 @@ age_seq <- seq(min(data$age, na.rm=TRUE),
 mean_hours <- mean(data$totalHoursWorked, na.rm=TRUE)
 
 # Categoría base
-base_relab <- levels(factor(data$relab))[1]
-base_educ  <- levels(factor(data$maxEducLevel))[1]
+base_relab <- levels(factor(data$relab))[1] #REVISAR
+base_educ  <- levels(factor(data$maxEducLevel))[1]  #REVISAR
 
 # Crear grid
 pred_data <- expand.grid(
@@ -243,18 +301,14 @@ pred_data <- expand.grid(
 
 pred_data$age_squared <- pred_data$age^2
 pred_data$totalHoursWorked <- mean_hours
-
-# Asignar relab y educ como FACTORES con los mismos niveles del modelo
 pred_data$relab <- factor(base_relab, levels = levels(factor(data$relab)))
 pred_data$maxEducLevel <- factor(base_educ, levels = levels(factor(data$maxEducLevel)))
 
-# Predicción en log
+# Predicción en log (y forzar numérico)
 pred_data$pred_log <- as.numeric(predict(model_interact, newdata = pred_data))
-
-# Pasar a nivel (si log_income = log(y))
 pred_data$pred_income <- exp(pred_data$pred_log)
 
-# Labels Male/Female
+# Etiquetas
 pred_data$gender <- factor(pred_data$female,
                            levels = c(0, 1),
                            labels = c("Male", "Female"))
@@ -272,7 +326,8 @@ p <- ggplot(pred_data, aes(x = age, y = pred_income, color = gender)) +
   geom_text(
     data = peaks,
     aes(label = paste0("Peak: age ", age, "\n", format(round(pred_income, 0), big.mark=","))),
-    vjust = -1, hjust = 0.5, show.legend = FALSE
+    nudge_y = 30000,
+    show.legend = FALSE
   ) +
   labs(
     title = "Predicted Age–Labor Income Profiles",
@@ -285,13 +340,12 @@ p <- ggplot(pred_data, aes(x = age, y = pred_income, color = gender)) +
         legend.position = "right")
 
 print(p)
-
 # Guardar
-dir.create("02_output/figures", recursive = TRUE, showWarnings = FALSE)
-ggsave("02_output/figures/05_age_labor_income_profiles.png",
+
+ggsave("02_output/figures/05_section2_gap/05_age_labor_income_profiles.png",
        plot = p, width = 10, height = 6, dpi = 300)
 
-cat("\nGuardado: 02_output/figures/05_age_labor_income_profiles.png\n")
+cat("\nGuardado: 02_output/figures/05_section2_gap/05_age_labor_income_profiles.png\n")
 
 cat("\n================================================================================\n")
 cat("PASO 9: IMPLIED PEAK AGES \n")

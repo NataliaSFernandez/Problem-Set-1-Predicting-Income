@@ -219,7 +219,6 @@ cat("\nGuardado: 02_output/tables/05_gender_gap_table.tex\n")
 cat("\n================================================================================\n") # nolint
 cat("PASO 8: VISUALIZACIÓN PREDICTED AGE-LABOR INCOME PROFILES\n")
 cat("================================================================================\n") # nolint
-
 model_interact <- lm(log_income ~ female*(age + age_squared) +
                      totalHoursWorked +
                      factor(relab) +
@@ -232,24 +231,30 @@ age_seq <- seq(min(data$age, na.rm=TRUE),
 
 mean_hours <- mean(data$totalHoursWorked, na.rm=TRUE)
 
-# Tomamos categoría base de relab y educación
+# Categoría base
 base_relab <- levels(factor(data$relab))[1]
-base_educ <- levels(factor(data$maxEducLevel))[1]
+base_educ  <- levels(factor(data$maxEducLevel))[1]
 
+# Crear grid
 pred_data <- expand.grid(
   age = age_seq,
-  female = c(0,1)
+  female = c(0, 1)
 )
 
 pred_data$age_squared <- pred_data$age^2
 pred_data$totalHoursWorked <- mean_hours
-pred_data$relab <- base_relab
-pred_data$maxEducLevel <- base_educ
 
-pred_data$predicted_log_income <- predict(model_interact, newdata = pred_data)
+# Asignar relab y educ como FACTORES con los mismos niveles del modelo
+pred_data$relab <- factor(base_relab, levels = levels(factor(data$relab)))
+pred_data$maxEducLevel <- factor(base_educ, levels = levels(factor(data$maxEducLevel)))
+
+# Predicción en log
+pred_data$pred_log <- as.numeric(predict(model_interact, newdata = pred_data))
+
+# Pasar a nivel (si log_income = log(y))
 pred_data$pred_income <- exp(pred_data$pred_log)
 
-#Labels máximos por grupo
+# Labels Male/Female
 pred_data$gender <- factor(pred_data$female,
                            levels = c(0, 1),
                            labels = c("Male", "Female"))
@@ -260,12 +265,15 @@ peaks <- pred_data %>%
   slice_max(order_by = pred_income, n = 1, with_ties = FALSE) %>%
   ungroup()
 
+# Plot
 p <- ggplot(pred_data, aes(x = age, y = pred_income, color = gender)) +
   geom_line(linewidth = 1.2) +
   geom_point(data = peaks, aes(x = age, y = pred_income), size = 3) +
-  geom_text(data = peaks,
-            aes(label = paste0("Peak: age ", age, "\n", format(round(pred_income, 0), big.mark=","))),
-            vjust = -1, hjust = 0.5, show.legend = FALSE) +
+  geom_text(
+    data = peaks,
+    aes(label = paste0("Peak: age ", age, "\n", format(round(pred_income, 0), big.mark=","))),
+    vjust = -1, hjust = 0.5, show.legend = FALSE
+  ) +
   labs(
     title = "Predicted Age–Labor Income Profiles",
     x = "Age",
@@ -273,13 +281,18 @@ p <- ggplot(pred_data, aes(x = age, y = pred_income, color = gender)) +
     color = ""
   ) +
   theme_bw() +
-  theme(
-    plot.title = element_text(hjust = 0.5),
-    legend.position = "right"
-  )
-  
-cat("\nGuardado: 02_output/figures/05_age-labor_Income_profiles.png.png\n")
- 
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "right")
+
+print(p)
+
+# Guardar
+dir.create("02_output/figures", recursive = TRUE, showWarnings = FALSE)
+ggsave("02_output/figures/05_age_labor_income_profiles.png",
+       plot = p, width = 10, height = 6, dpi = 300)
+
+cat("\nGuardado: 02_output/figures/05_age_labor_income_profiles.png\n")
+
 cat("\n================================================================================\n")
 cat("PASO 9: IMPLIED PEAK AGES \n")
 cat("================================================================================\n")

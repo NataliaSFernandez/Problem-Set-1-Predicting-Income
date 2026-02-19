@@ -54,6 +54,7 @@ for num in range(1, 11):  # 1 a 11
         rows.append(cells)
 
     df_page = pd.DataFrame(rows, columns=cols)
+    df_page.insert(0, "chunk", num)  # Agregar columna 'chunk' al inicio
     dfs.append(df_page)
 
 # unir todo

@@ -374,11 +374,11 @@ age_seq <- seq(min(data$age, na.rm = TRUE),
                by = 1)
 
 mean_hours <- mean(data$totalHoursWorked, na.rm = TRUE)
-base_relab <- levels(factor(data$relab))[3]
-base_educ  <- levels(factor(data$maxEducLevel))[5]
+base_relab <- levels(factor(data$relab))[1]
+base_educ  <- levels(factor(data$maxEducLevel))[1]
 base_oficio <- levels(factor(data$oficio))[1]
 base_sizeFirm <- levels(factor(data$sizeFirm))[1]
-base_estrato1 <- levels(factor(data$estrato1))[4]
+base_estrato1 <- levels(factor(data$estrato1))[1]
 base_p6240 <- levels(factor(data$p6240))[1]
 
 

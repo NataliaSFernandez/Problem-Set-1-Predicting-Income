@@ -279,7 +279,7 @@ set.seed(123)
 
 run_fwl_bootstrap <- function(df,
                               controls,
-                              R = 500,
+                              R = 1000,
                               y = "log_income",
                               g = "female") {
 
@@ -300,7 +300,7 @@ run_fwl_bootstrap <- function(df,
 }
 
 # Ejecutar bootstrap
-boot_res <- run_fwl_bootstrap(data, controls = best_controls, R = 500)
+boot_res <- run_fwl_bootstrap(data, controls = best_controls, R = 1000)
 
 # SE bootstrap
 se_boot <- sd(boot_res$t)
@@ -356,7 +356,7 @@ boot_uncond_fun <- function(d, idx){
 }
 
 set.seed(123)
-boot_uncond <- boot::boot(data, statistic = boot_uncond_fun, R = 500)
+boot_uncond <- boot::boot(data, statistic = boot_uncond_fun, R = 1000)
 se_uncond_boot <- sd(boot_uncond$t)
 
 boot_cond_fun <- function(d, idx){
@@ -366,7 +366,7 @@ boot_cond_fun <- function(d, idx){
 }
 
 set.seed(123)
-boot_cond <- boot::boot(data, statistic = boot_cond_fun, R = 500)
+boot_cond <- boot::boot(data, statistic = boot_cond_fun, R = 1000)
 se_cond_boot <- sd(boot_cond$t)
 
 # 4. Tabla final
@@ -577,7 +577,7 @@ boot_peak_fun <- function(d, idx){
 }
 
 set.seed(123)
-boot_peaks <- boot::boot(data, statistic = boot_peak_fun, R = 500)
+boot_peaks <- boot::boot(data, statistic = boot_peak_fun, R = 1000)
 
 # =========================
 # 3) SE + CI (percentil)

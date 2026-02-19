@@ -1,24 +1,28 @@
 ################################################################################
 # PROBLEM SET 1: PREDICTING INCOME
-# Script 04: Age-Income Profile (Section 1)
+# Script 01: Age-Income Profile (Section 1)
 ################################################################################
 # OBJETIVO: Estimar perfil edad-ingreso y calcular edad de pico de earnings
 #
 # INPUTS:  00_data/cleaned/data_cleaned.csv
 # OUTPUTS: 
 #   - 02_output/tables/01_section1_age_income/age_income_regressions.tex
+#   - 02_output/tables/01_section1_age_income/age_income_regressions.png
 #   - 02_output/figures/01_section1_age_income/age_income_profile.png
 #   - 02_output/tables/01_section1_age_income/peak_age_estimates.tex
+#   - 02_output/tables/01_section1_age_income/peak_age_estimates.png
 ################################################################################
 
 # Limpiar entorno
 rm(list = ls())
 
-#Instalar librerías
+# Instalar librerías
 if (!require(ggplot2)) install.packages("ggplot2")
 if (!require(stargazer)) install.packages("stargazer")
 if (!require(dplyr)) install.packages("dplyr")
 if (!require(boot)) install.packages("boot")
+if (!require(webshot)) install.packages("webshot")
+if (!require(htmltools)) install.packages("htmltools")
 
 # Cargar librerías
 suppressMessages({
@@ -26,7 +30,15 @@ suppressMessages({
   library(ggplot2)
   library(stargazer)
   library(boot)
+  library(webshot)
+  library(htmltools)
 })
+
+# Verificar si phantomjs está instalado (necesario para webshot)
+if (!webshot::is_phantomjs_installed()) {
+  cat("Instalando phantomjs para generación de PNG...\n")
+  webshot::install_phantomjs()
+}
 
 cat("================================================================================\n")
 cat("SECCIÓN 1: PERFIL EDAD-INGRESO\n")
@@ -94,14 +106,17 @@ peak_age_m2 <- -beta1_m2 / (2 * beta2_m2)
 cat(sprintf("\nEdad de pico de ingresos (Modelo 2): %.1f años\n", peak_age_m2))
 
 # ==============================================================================
-# PASO 4: TABLA DE REGRESIONES
+# PASO 4: TABLA DE REGRESIONES (TEX + PNG)
 # ==============================================================================
 
 cat("\n================================================================================\n")
-cat("PASO 4: GENERAR TABLA DE REGRESIONES\n")
+cat("PASO 4: GENERAR TABLA DE REGRESIONES (TEX + PNG)\n")
 cat("================================================================================\n")
 
-# Generar tabla con stargazer (suprimir salida a consola)
+# Crear directorio si no existe
+dir.create("02_output/tables/01_section1_age_income", showWarnings = FALSE, recursive = TRUE)
+
+# Generar tabla TEX
 invisible(capture.output(
   stargazer(model1, model2,
             type = "latex",
@@ -120,6 +135,55 @@ invisible(capture.output(
 ))
 
 cat("\nGuardado: 02_output/tables/01_section1_age_income/age_income_regressions.tex\n")
+
+# Generar tabla HTML (para convertir a PNG)
+html_temp <- tempfile(fileext = ".html")
+
+# Agregar CSS para fondo blanco
+html_wrapper <- sprintf('
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body { background-color: white; padding: 20px; }
+table { background-color: white; }
+</style>
+</head>
+<body>
+%s
+</body>
+</html>
+', paste(readLines(textConnection(capture.output(
+  stargazer(model1, model2,
+            type = "html",
+            title = "Age-Income Profile Regressions",
+            dep.var.labels = "Log(Monthly Income)",
+            covariate.labels = c("Age", "Age Squared", "Hours Worked"),
+            omit = "factor\\(relab\\)",
+            add.lines = list(
+              c("Labor Relation FE", "No", "Yes"),
+              c("Peak Age", sprintf("%.1f", peak_age_m1), sprintf("%.1f", peak_age_m2))
+            ),
+            omit.stat = c("ser", "f"),
+            digits = 4)
+))), collapse = "\n"))
+
+writeLines(html_wrapper, html_temp)
+
+# Convertir HTML a PNG
+tryCatch({
+  webshot(html_temp, 
+          file = "02_output/tables/01_section1_age_income/age_income_regressions.png",
+          vwidth = 800,
+          vheight = 600)
+  cat("Guardado: 02_output/tables/01_section1_age_income/age_income_regressions.png\n")
+}, error = function(e) {
+  cat("AVISO: No se pudo generar PNG (requiere phantomjs)\n")
+  cat("Ejecute: webshot::install_phantomjs()\n")
+})
+
+# Limpiar archivo temporal
+unlink(html_temp)
 
 # ==============================================================================
 # PASO 5: BOOTSTRAP PARA INTERVALO DE CONFIANZA DE EDAD PICO
@@ -150,7 +214,7 @@ cat(sprintf("\nEdad de pico de ingresos: %.1f años\n", peak_age_m1))
 cat(sprintf("IC 95%% (Bootstrap): [%.1f, %.1f]\n", 
             ci_boot$percent[4], ci_boot$percent[5]))
 
-# Guardar resultados en tabla LaTeX manual
+# Guardar resultados en tabla TEX
 peak_table <- sprintf("\\begin{table}[h]
 \\centering
 \\caption{Peak Age of Earnings - Bootstrap Estimates}
@@ -170,8 +234,49 @@ Bootstrap Replications & 500 \\\\
 \\end{table}", peak_age_m1, ci_boot$percent[4], ci_boot$percent[5])
 
 writeLines(peak_table, "02_output/tables/01_section1_age_income/peak_age_estimates.tex")
-
 cat("\nGuardado: 02_output/tables/01_section1_age_income/peak_age_estimates.tex\n")
+
+# Generar versión HTML para PNG con fondo blanco
+peak_html <- sprintf("<!DOCTYPE html>
+<html>
+<head>
+<style>
+body { background-color: white; padding: 20px; font-family: Arial; }
+table { background-color: white; border-collapse: collapse; margin: 20px; }
+td, th { padding: 8px; border: 1px solid black; }
+th { background-color: #f0f0f0; }
+caption { font-size: 16px; font-weight: bold; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+<table>
+<caption>Peak Age of Earnings - Bootstrap Estimates</caption>
+<tr><th></th><th>Estimate</th></tr>
+<tr><td>Peak Age (years)</td><td>%.2f</td></tr>
+<tr><td>95%% CI Lower Bound</td><td>%.2f</td></tr>
+<tr><td>95%% CI Upper Bound</td><td>%.2f</td></tr>
+<tr style='background-color:#f0f0f0;'><td colspan='2' style='text-align:center;'><b>Model Details</b></td></tr>
+<tr><td>Model</td><td>Unconditional</td></tr>
+<tr><td>Bootstrap Replications</td><td>500</td></tr>
+</table>
+</body>
+</html>", peak_age_m1, ci_boot$percent[4], ci_boot$percent[5])
+
+html_temp2 <- tempfile(fileext = ".html")
+writeLines(peak_html, html_temp2)
+
+# Convertir a PNG
+tryCatch({
+  webshot(html_temp2, 
+          file = "02_output/tables/01_section1_age_income/peak_age_estimates.png",
+          vwidth = 600,
+          vheight = 400)
+  cat("Guardado: 02_output/tables/01_section1_age_income/peak_age_estimates.png\n")
+}, error = function(e) {
+  cat("AVISO: No se pudo generar PNG (requiere phantomjs)\n")
+})
+
+unlink(html_temp2)
 
 # ==============================================================================
 # PASO 6: GRÁFICO DE PERFIL EDAD-INGRESO
@@ -180,6 +285,9 @@ cat("\nGuardado: 02_output/tables/01_section1_age_income/peak_age_estimates.tex\
 cat("\n================================================================================\n")
 cat("PASO 6: GENERAR GRÁFICO DE PERFIL EDAD-INGRESO\n")
 cat("================================================================================\n")
+
+# Crear directorio si no existe
+dir.create("02_output/figures/01_section1_age_income", showWarnings = FALSE, recursive = TRUE)
 
 # Crear grid de edades para predicción
 age_grid <- data.frame(
@@ -232,7 +340,7 @@ ggsave("02_output/figures/01_section1_age_income/age_income_profile.png", plot =
 cat("\nGuardado: 02_output/figures/01_section1_age_income/age_income_profile.png\n")
 
 # ==============================================================================
-# PASO 7: RESUMEN FINAL
+# RESUMEN FINAL
 # ==============================================================================
 
 cat("\n================================================================================\n")
@@ -242,7 +350,9 @@ cat("===========================================================================
 cat("\nARCHIVOS GENERADOS:\n")
 cat("\nTablas:\n")
 cat("  1. 02_output/tables/01_section1_age_income/age_income_regressions.tex\n")
-cat("  2. 02_output/tables/01_section1_age_income/peak_age_estimates.tex\n")
+cat("  2. 02_output/tables/01_section1_age_income/age_income_regressions.png\n")
+cat("  3. 02_output/tables/01_section1_age_income/peak_age_estimates.tex\n")
+cat("  4. 02_output/tables/01_section1_age_income/peak_age_estimates.png\n")
 cat("\nGráficos:\n")
 cat("  1. 02_output/figures/01_section1_age_income/age_income_profile.png\n")
 

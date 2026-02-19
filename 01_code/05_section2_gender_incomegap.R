@@ -432,7 +432,7 @@ age_seq <- seq(min(data$age, na.rm = TRUE),
 
 mean_hours <- mean(data$totalHoursWorked, na.rm = TRUE)
 
-# Categorías base (las que toma R como referencia suelen ser la primera en levels)
+# Categorías base cambiar 
 base_relab <- levels(factor(data$relab))[1]
 base_educ  <- levels(factor(data$maxEducLevel))[1]
 
@@ -623,11 +623,6 @@ stargazer::stargazer(peak_table,
 
 cat(sprintf("\nGuardado TEX: %s\n", file.path(out_tab, "05_peak_ages_section2.tex")))
 
-# =========================
-# 5) Guardar figura
-# =========================
-# OJO: 'p' es tu gráfico de perfiles por edad. El nombre "peak_ages" sugiere otra cosa.
-# Te lo guardo como perfiles con peaks para que quede consistente:
 ggsave(file.path(out_fig, "05_age_income_profiles_with_peaks.png"),
        plot = p, width = 10, height = 6, dpi = 300)
 

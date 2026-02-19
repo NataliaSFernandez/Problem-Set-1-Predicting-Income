@@ -41,9 +41,11 @@ rm(list = ls())
 set.seed(123)
 
 #Instalar librerías
-pkgs <- c("ggplot2","stargazer","dplyr","boot","gt")
-to_install <- pkgs[!sapply(pkgs, requireNamespace, quietly = TRUE)]
-if(length(to_install) > 0) install.packages(to_install)
+if (!require(ggplot2)) install.packages("ggplot2")
+if (!require(stargazer)) install.packages("stargazer")
+if (!require(dplyr)) install.packages("dplyr")
+if (!require(boot)) install.packages("boot")
+if (!require(gt)) install.packages("boot")
 
 # Cargar librerías
 suppressMessages({
@@ -266,7 +268,14 @@ cat("\n=========================================================================
 cat("PASO 5: BOOTSTRAP\n")
 cat("================================================================================\n") # nolint
 
-run_fwl_bootstrap <- function(df, controls, R = 500, y = "log_income", g = "female") {
+set.seed(123)
+
+run_fwl_bootstrap <- function(df,
+                              controls,
+                              R = 500,
+                              y = "log_income",
+                              g = "female") {
+
   controls_str <- paste(controls, collapse = " + ")
   f_g <- as.formula(paste(g, "~", controls_str))
   f_y <- as.formula(paste(y, "~", controls_str))
@@ -281,7 +290,10 @@ boot_fun <- function(d, idx) {
   boot::boot(df, statistic = boot_fun, R = R)
 }
 
+# Ejecutar bootstrap
 boot_res <- run_fwl_bootstrap(data, controls = best_controls, R = 500)
+
+# SE bootstrap
 se_boot <- sd(boot_res$t)
 ci_boot <- boot::boot.ci(boot_res, type = c("perc", "basic"))
 
@@ -317,6 +329,8 @@ boot_uncond_fun <- function(d, idx){
   dd <- d[idx, ]
   coef(lm(log_income ~ female, data = dd))[["female"]]
 }
+
+set.seed(123)
 boot_uncond <- boot::boot(data, statistic = boot_uncond_fun, R = 500)
 se_uncond_boot <- sd(boot_uncond$t)
 
@@ -324,6 +338,8 @@ boot_cond_fun <- function(d, idx){
   dd <- d[idx, ]
   coef(lm(f_best_ols, data = dd))[["female"]]
 }
+
+set.seed(123)
 boot_cond <- boot::boot(data, statistic = boot_cond_fun, R = 500)
 se_cond_boot <- sd(boot_cond$t)
 
@@ -500,6 +516,7 @@ boot_peak_fun <- function(d, idx){
   c(peak_m, peak_f)
 }
 
+set.seed(123)
 boot_peaks <- boot::boot(data, statistic = boot_peak_fun, R = 500)
 
 se_peak_male   <- sd(boot_peaks$t[, 1], na.rm = TRUE)

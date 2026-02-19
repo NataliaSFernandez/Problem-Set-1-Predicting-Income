@@ -203,9 +203,9 @@ peak_age_boot <- function(data, indices) {
   return(peak)
 }
 
-cat("\nEjecutando bootstrap (500 repeticiones)...\n")
+cat("\nEjecutando bootstrap (1000 repeticiones)...\n")
 set.seed(12345)
-boot_results <- boot(data = data, statistic = peak_age_boot, R = 500)
+boot_results <- boot(data = data, statistic = peak_age_boot, R = 1000)
 
 # Intervalo de confianza
 ci_boot <- boot.ci(boot_results, type = "perc", conf = 0.95)
@@ -228,7 +228,7 @@ Peak Age (years) & %.2f \\\\
 95\\%% CI Upper Bound & %.2f \\\\
 \\hline
 Model & Unconditional \\\\
-Bootstrap Replications & 500 \\\\
+Bootstrap Replications & 1000 \\\\
 \\hline\\hline
 \\end{tabular}
 \\end{table}", peak_age_m1, ci_boot$percent[4], ci_boot$percent[5])
@@ -257,7 +257,7 @@ caption { font-size: 16px; font-weight: bold; margin-bottom: 10px; }
 <tr><td>95%% CI Upper Bound</td><td>%.2f</td></tr>
 <tr style='background-color:#f0f0f0;'><td colspan='2' style='text-align:center;'><b>Model Details</b></td></tr>
 <tr><td>Model</td><td>Unconditional</td></tr>
-<tr><td>Bootstrap Replications</td><td>500</td></tr>
+<tr><td>Bootstrap Replications</td><td>1000</td></tr>
 </table>
 </body>
 </html>", peak_age_m1, ci_boot$percent[4], ci_boot$percent[5])

@@ -6,9 +6,9 @@
 #
 # INPUTS:  00_data/cleaned/data_cleaned.csv
 # OUTPUTS: 
-#   - 02_output/tables/age_income_regressions.tex
-#   - 02_output/figures/age_income_profile.png
-#   - 02_output/tables/peak_age_estimates.tex
+#   - 02_output/tables/01_section1_age_income/age_income_regressions.tex
+#   - 02_output/figures/01_section1_age_income/age_income_profile.png
+#   - 02_output/tables/01_section1_age_income/peak_age_estimates.tex
 ################################################################################
 
 # Limpiar entorno
@@ -101,9 +101,6 @@ cat("\n=========================================================================
 cat("PASO 4: GENERAR TABLA DE REGRESIONES\n")
 cat("================================================================================\n")
 
-# Crear directorio si no existe
-dir.create("02_output/tables", showWarnings = FALSE, recursive = TRUE)
-
 # Generar tabla con stargazer (suprimir salida a consola)
 invisible(capture.output(
   stargazer(model1, model2,
@@ -119,10 +116,10 @@ invisible(capture.output(
             ),
             omit.stat = c("ser", "f"),
             digits = 4,
-            out = "02_output/tables/age_income_regressions.tex")
+            out = "02_output/tables/01_section1_age_income/age_income_regressions.tex")
 ))
 
-cat("\nGuardado: 02_output/tables/age_income_regressions.tex\n")
+cat("\nGuardado: 02_output/tables/01_section1_age_income/age_income_regressions.tex\n")
 
 # ==============================================================================
 # PASO 5: BOOTSTRAP PARA INTERVALO DE CONFIANZA DE EDAD PICO
@@ -172,9 +169,9 @@ Bootstrap Replications & 500 \\\\
 \\end{tabular}
 \\end{table}", peak_age_m1, ci_boot$percent[4], ci_boot$percent[5])
 
-writeLines(peak_table, "02_output/tables/peak_age_estimates.tex")
+writeLines(peak_table, "02_output/tables/01_section1_age_income/peak_age_estimates.tex")
 
-cat("\nGuardado: 02_output/tables/peak_age_estimates.tex\n")
+cat("\nGuardado: 02_output/tables/01_section1_age_income/peak_age_estimates.tex\n")
 
 # ==============================================================================
 # PASO 6: GRÁFICO DE PERFIL EDAD-INGRESO
@@ -183,9 +180,6 @@ cat("\nGuardado: 02_output/tables/peak_age_estimates.tex\n")
 cat("\n================================================================================\n")
 cat("PASO 6: GENERAR GRÁFICO DE PERFIL EDAD-INGRESO\n")
 cat("================================================================================\n")
-
-# Crear directorio si no existe
-dir.create("02_output/figures", showWarnings = FALSE, recursive = TRUE)
 
 # Crear grid de edades para predicción
 age_grid <- data.frame(
@@ -232,10 +226,10 @@ p <- ggplot(age_grid, aes(x = age)) +
     legend.text = element_text(size = 10)
   )
 
-ggsave("02_output/figures/age_income_profile.png", plot = p, 
+ggsave("02_output/figures/01_section1_age_income/age_income_profile.png", plot = p, 
        width = 10, height = 6, dpi = 300)
 
-cat("\nGuardado: 02_output/figures/age_income_profile.png\n")
+cat("\nGuardado: 02_output/figures/01_section1_age_income/age_income_profile.png\n")
 
 # ==============================================================================
 # PASO 7: RESUMEN FINAL
@@ -247,10 +241,10 @@ cat("===========================================================================
 
 cat("\nARCHIVOS GENERADOS:\n")
 cat("\nTablas:\n")
-cat("  1. 02_output/tables/age_income_regressions.tex\n")
-cat("  2. 02_output/tables/peak_age_estimates.tex\n")
+cat("  1. 02_output/tables/01_section1_age_income/age_income_regressions.tex\n")
+cat("  2. 02_output/tables/01_section1_age_income/peak_age_estimates.tex\n")
 cat("\nGráficos:\n")
-cat("  1. 02_output/figures/age_income_profile.png\n")
+cat("  1. 02_output/figures/01_section1_age_income/age_income_profile.png\n")
 
 cat("\nRESULTADOS CLAVE:\n")
 cat(sprintf("  Modelo 1 - R²: %.4f, Edad pico: %.1f años\n", 

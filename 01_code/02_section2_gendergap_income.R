@@ -1,7 +1,7 @@
 ################################################################################
 # PROBLEM SET 1: Predicting Income
 # Section 2: Gender–Labor Income Gap
-# Script 05: Gender_Labor_Income_Gap.R
+# Script 02: Gender_Labor_Income_Gap.R
 ################################################################################
 # OBJETIVO:
 # Analizar la brecha de ingresos laborales entre hombres y mujeres en Bogotá
@@ -31,8 +31,8 @@
 #   - Tabla de edades pico (peak ages) por género
 #   - Gráfico de perfiles edad–ingreso predichos
 #   - Archivos exportados en:
-#       02_output/tables/05_section2_gap
-#       02_output/figures/05_section2_gap
+#       02_output/tables/01_section2_gap
+#       02_output/figures/01_section2_gap
 #
 ################################################################################
 
@@ -175,7 +175,7 @@ tabla_png <- tab_export |>
 
 gtsave(tabla_png,
        filename = "model_comparison.png",
-       path = "02_output/tables/05_section2_gap")
+       path = "02_output/tables/02_section2_gendergap_income")
 
 #Elige el mejor control
 best_idx <- as.integer(sub("M", "", tab$model_id[1]))
@@ -403,16 +403,16 @@ gt_tbl <- gt(results_table) |>
     R_squared = "R²"
   )
 
-out_path <- "02_output/tables/05_section2_gap"
+out_path <- "02_output/tables/02_section2_gendergap_income"
 gtsave(gt_tbl, filename = "05_gender_gap_table.png", path = out_path)
 
-cat("\nGuardado: 02_output/tables/05_section2_gap/05_gender_gap_table.tex\n")
+cat("\nGuardado: 02_output/tables/02_section2_gendergap_income/05_gender_gap_table.tex\n")
 
 cat("\n================================================================================\n") # nolint
 cat("PASO 7: VISUALIZACIÓN PREDICTED AGE-LABOR INCOME PROFILES\n")
 cat("================================================================================\n") # nolint
 
-out_fig <- "02_output/figures/05_section2_gap"
+out_fig <- "02_output/figures/02_section2_gendergap_income"
 
 model_interact <- lm(
   log_income ~ female*(age + age_squared) +
@@ -515,7 +515,7 @@ p <- ggplot(pred_data, aes(age, pred_income, color = gender)) +
 print(p)
 
 # 8) Guardar figura
-out_fig <- "02_output/figures/05_section2_gap"
+out_fig <- "02_output/figures/02_section2_gendergap_income"
 if (!dir.exists(out_fig)) dir.create(out_fig, recursive = TRUE)
 
 ggsave(file.path(out_fig, "05_age_labor_income_profiles.png"),

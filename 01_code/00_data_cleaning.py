@@ -121,7 +121,7 @@ ax.set_title('Patrón de Missing Values - Variables Clave (DATOS CRUDOS)', fonts
 ax.set_xlabel('Observaciones (sample)', fontsize=12)
 ax.set_ylabel('Variables', fontsize=12)
 plt.tight_layout()
-plt.savefig("02_output/figures/002_data_cleaning/missing_heatmap.png", dpi=300, bbox_inches='tight')
+plt.savefig("02_output/figures/00_data_cleaning/missing_heatmap.png", dpi=300, bbox_inches='tight')
 plt.close()
 print("  Guardado: 02_output/figures/missing_heatmap.png")
 
@@ -316,9 +316,9 @@ axes[1].legend()
 axes[1].grid(True, alpha=0.3)
 
 plt.tight_layout()
-plt.savefig("02_output/figures/002_data_cleaning/outliers_income_boxplot.png", dpi=300, bbox_inches='tight')
+plt.savefig("02_output/figures/00_data_cleaning/outliers_income_boxplot.png", dpi=300, bbox_inches='tight')
 plt.close()
-print("  Guardado: 02_output/figures/002_data_cleaning/outliers_income_boxplot.png")
+print("  Guardado: 02_output/figures//outliers_income_boxplot.png")
 
 # ==============================================================================
 # PASO 7: CREAR VARIABLES DERIVADAS
@@ -461,7 +461,7 @@ with open("02_output/tables/cleaning_summary.tex", "w") as f:
     f.write(summary_df.to_latex(index=False, escape=False))
     f.write("\\end{table}\n")
 
-print("\nResumen guardado en: 02_output/tables/002_data_cleaning/cleaning_summary.tex")
+print("\nResumen guardado en: 02_output/tables//cleaning_summary.tex")
 
 # ==============================================================================
 # FINALIZACIÓN
@@ -472,9 +472,9 @@ print("LIMPIEZA DE DATOS COMPLETADA EXITOSAMENTE")
 print("="*80)
 
 print("\nARCHIVOS GENERADOS:")
-print("  1. 00_data/cleaned/002_data_cleaning/data_cleaned.csv")
-print("  2. 02_output/figures/002_data_cleaning/missing_heatmap.png")
-print("  3. 02_output/figures/002_data_cleaning/outliers_income_boxplot.png")
-print("  4. 02_output/tables/002_data_cleaning/cleaning_summary.tex")
+print("  1. 00_data/cleaned//data_cleaned.csv")
+print("  2. 02_output/figures//missing_heatmap.png")
+print("  3. 02_output/figures//outliers_income_boxplot.png")
+print("  4. 02_output/tables//cleaning_summary.tex")
 
 print("\n" + "="*80)

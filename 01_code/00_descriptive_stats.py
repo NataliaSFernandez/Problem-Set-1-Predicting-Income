@@ -83,7 +83,7 @@ print("\nEstadísticas generales:")
 print(stats_general.to_string())
 
 # Guardar en LaTeX
-with open("02_output/tables/003_descriptive_stats/descriptive_stats_general.tex", "w") as f:
+with open("02_output/tables/00_descriptive_stats/descriptive_stats_general.tex", "w") as f:
     f.write("\\begin{table}[h]\n")
     f.write("\\centering\n")
     f.write("\\caption{Estadísticas Descriptivas Generales}\n")
@@ -91,7 +91,7 @@ with open("02_output/tables/003_descriptive_stats/descriptive_stats_general.tex"
     f.write(stats_general.to_latex(float_format="%.2f", escape=False))
     f.write("\\end{table}\n")
 
-print("\nGuardado: 02_output/tables/003_descriptive_stats/descriptive_stats_general.tex")
+print("\nGuardado: 02_output/tables/00_descriptive_stats/descriptive_stats_general.tex")
 
 # ==============================================================================
 # PASO 3: ESTADÍSTICAS POR GÉNERO
@@ -133,7 +133,7 @@ print(f"  Mediana - Mujeres: ${median_female:,.0f}")
 print(f"  Brecha (mediana): {gap_median_pct:.1f}%")
 
 # Guardar tabla en LaTeX
-with open("02_output/tables/003_descriptive_stats/descriptive_stats_gender.tex", "w") as f:
+with open("02_output/tables/00_descriptive_stats/descriptive_stats_gender.tex", "w") as f:
     f.write("\\begin{table}[h]\n")
     f.write("\\centering\n")
     f.write("\\caption{Estadísticas Descriptivas por Género}\n")
@@ -141,7 +141,7 @@ with open("02_output/tables/003_descriptive_stats/descriptive_stats_gender.tex",
     f.write(stats_gender.to_latex(float_format="%.2f", escape=False))
     f.write("\\end{table}\n")
 
-print("\nGuardado: 02_output/tables/003_descriptive_stats   /descriptive_stats_gender.tex")
+print("\nGuardado: 02_output/tables/00_descriptive_stats   /descriptive_stats_gender.tex")
 
 # ==============================================================================
 # PASO 4: COMPOSICIÓN DE LA MUESTRA
@@ -215,9 +215,9 @@ axes[1].legend()
 axes[1].grid(True, alpha=0.3)
 
 plt.tight_layout()
-plt.savefig("02_output/figures/003_descriptive_stats/income_distribution_gender.png", dpi=300, bbox_inches='tight')
+plt.savefig("02_output/figures/00_descriptive_stats/income_distribution_gender.png", dpi=300, bbox_inches='tight')
 plt.close()
-print("  Guardado: 02_output/figures/003_descriptive_stats/income_distribution_gender.png")
+print("  Guardado: 02_output/figures/00_descriptive_stats/income_distribution_gender.png")
 
 # GRÁFICO 2: Distribución de edad
 print("\nGenerando: Distribución de edad...")
@@ -233,9 +233,9 @@ ax.legend()
 ax.grid(True, alpha=0.3)
 
 plt.tight_layout()
-plt.savefig("02_output/figures/003_descriptive_stats/age_distribution.png", dpi=300, bbox_inches='tight')
+plt.savefig("02_output/figures/00_descriptive_stats/age_distribution.png", dpi=300, bbox_inches='tight')
 plt.close()
-print("  Guardado: 02_output/figures/003_descriptive_stats/age_distribution.png")
+print("  Guardado: 02_output/figures/00_descriptive_stats/age_distribution.png")
 
 # GRÁFICO 3: Horas trabajadas por género
 print("\nGenerando: Horas trabajadas por género...")
@@ -257,9 +257,9 @@ for i, gender in enumerate([0, 1]):
             horizontalalignment='center', fontsize=10, color='red', fontweight='bold')
 
 plt.tight_layout()
-plt.savefig("02_output/figures/003_descriptive_stats/hours_distribution_gender.png", dpi=300, bbox_inches='tight')
+plt.savefig("02_output/figures/00_descriptive_stats/hours_distribution_gender.png", dpi=300, bbox_inches='tight')
 plt.close()
-print("  Guardado: 02_output/figures/003_descriptive_stats/hours_distribution_gender.png")
+print("  Guardado: 02_output/figures/00_descriptive_stats/hours_distribution_gender.png")
 
 # ==============================================================================
 # PASO 6: RESUMEN FINAL
@@ -271,12 +271,12 @@ print("="*80)
 
 print("\nARCHIVOS GENERADOS:")
 print("\nTablas:")
-print("  1. 02_output/tables/003_descriptive_stats/descriptive_stats_general.tex")
-print("  2. 02_output/tables/003_descriptive_stats/descriptive_stats_gender.tex")
+print("  1. 02_output/tables/00_descriptive_stats/descriptive_stats_general.tex")
+print("  2. 02_output/tables/00_descriptive_stats/descriptive_stats_gender.tex")
 print("\nGráficos:")
-print("  1. 02_output/figures/003_descriptive_stats/income_distribution_gender.png")
-print("  2. 02_output/figures/003_descriptive_stats/age_distribution.png")
-print("  3. 02_output/figures/003_descriptive_stats/hours_distribution_gender.png")
+print("  1. 02_output/figures/00_descriptive_stats/income_distribution_gender.png")
+print("  2. 02_output/figures/00_descriptive_stats/age_distribution.png")
+print("  3. 02_output/figures/00_descriptive_stats/hours_distribution_gender.png")
 
 print("\nRESUMEN CLAVE:")
 print(f"  Muestra final: {len(data):,} empleados")

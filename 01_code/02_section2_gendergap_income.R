@@ -38,13 +38,12 @@
 
 # Limpiar entorno
 rm(list = ls())
+set.seed(123)
 
 #Instalar librerías
-if (!require(ggplot2)) install.packages("ggplot2")
-if (!require(stargazer)) install.packages("stargazer")
-if (!require(dplyr)) install.packages("dplyr")
-if (!require(boot)) install.packages("boot")
-if (!require(gt)) install.packages("boot")
+pkgs <- c("ggplot2","stargazer","dplyr","boot","gt")
+to_install <- pkgs[!sapply(pkgs, requireNamespace, quietly = TRUE)]
+if(length(to_install) > 0) install.packages(to_install)
 
 # Cargar librerías
 suppressMessages({
@@ -54,6 +53,13 @@ suppressMessages({
   library(boot)
   library(gt)
 })
+# Configuración de rutas
+
+out_tab <- "02_output/tables/02_section2_gendergap_income"
+out_fig <- "02_output/figures/02_section2_gendergap_income"
+# Ensure output directories exist
+if (!dir.exists(out_tab)) dir.create(out_tab, recursive = TRUE, showWarnings = FALSE)
+if (!dir.exists(out_fig)) dir.create(out_fig, recursive = TRUE, showWarnings = FALSE)
 
 cat("\n================================================================================\n") # nolint
 cat("PASO 1: CARGAR DATOS LIMPIOS\n")
@@ -70,13 +76,14 @@ cat("PASO 2: REGRESIÓN INCONDICIONAL\n")
 cat("================================================================================\n")
 
 # Función incondicional log(w)=beta_0+beta_1*Female+u
+model_uncond <- lm(log_income ~ female, data = data)
+s_uncond <- summary(model_uncond)
 
-model1 <- lm(log_income ~ female, data = data)
 cat("\nModelo 1: log(ingreso) = β0 + β1*female + u\n")
-cat(sprintf("  beta_1: %s\n",coef(model1)["female"] ,","))
-cat(sprintf("  Observaciones: %s\n", format(nobs(model1), big.mark=",")))
-cat(sprintf("  R²: %.4f\n", summary(model1)$r.squared))
-cat(sprintf("  R² ajustado: %.4f\n", summary(model1)$adj.r.squared))
+cat(sprintf("  beta_1: %s\n", coef(model_uncond)[["female"]]))
+cat(sprintf("  Observaciones: %s\n", format(nobs(model_uncond), big.mark=",")))
+cat(sprintf("  R²: %.4f\n", s_uncond$r.squared))
+cat(sprintf("  R² ajustado: %.4f\n", s_uncond$adj.r.squared))
 
 cat("\n================================================================================\n") # nolint: line_length_linter.
 cat("PASO 3: REGRESIÓN FWL\n")
@@ -87,22 +94,18 @@ run_fwl_gender <- function(df, control_list,
                           y = "log_income",
                           g = "female") {
   
-  results <- list()
+   results <- vector("list", length(control_list))
   
   for (i in seq_along(control_list)) {
-    
-    controls <- control_list[[i]]
-    controls_str <- paste(controls, collapse = " + ")
-    
-    formula_str <- paste(y, "~", g, "+", controls_str)
-    f <- as.formula(formula_str)
-    
+    controls_str <- paste(control_list[[i]], collapse = " + ")
+    f <- as.formula(paste(y, "~", g, "+", controls_str))
+
     model <- lm(f, data = df)
     summ <- summary(model)
     
     results[[i]] <- data.frame(
       model_id = paste0("M", i),
-      controls = paste(controls, collapse = ", "),
+      controls = paste(control_list[[i]], collapse = ", "),
       n = nobs(model),
       beta_female = coef(model)[g],
       se_female = summ$coefficients[g, "Std. Error"],
@@ -111,12 +114,10 @@ run_fwl_gender <- function(df, control_list,
       aic = AIC(model)
     )
   }
-  
-  final_results <- do.call(rbind, results)
-  return(final_results)
+  do.call(rbind, results)
 }
 
-#lista de Controles a comparar 
+#lista de Controles a comparar
 control_sets <- list(
 c("age", "age_squared", "factor(maxEducLevel)"), #Baseline M1
 c("age", "age_squared", "factor(maxEducLevel)", "totalHoursWorked"), #Intensidad laboral M2
@@ -127,15 +128,11 @@ c("age", "age_squared", "factor(maxEducLevel)", "totalHoursWorked", "factor(rela
 
 #Ejecutar modelo
 model_comparison <- run_fwl_gender(data, control_sets)
-model_comparison[order(-model_comparison$adj_r2), ]
 
 tab <- model_comparison
-
-tab$rank_adj_r2 <- rank(-tab$adj_r2, ties.method = "min")  # 1 = mejor
-tab$rank_aic    <- rank(tab$aic, ties.method = "min")     
-# Ranking combinado (puedes ponderar como quieras)
-tab$rank_total <- tab$rank_adj_r2 + tab$rank_aic
-
+tab$rank_adj_r2 <- rank(-tab$adj_r2, ties.method = "min")
+tab$rank_aic    <- rank(tab$aic, ties.method = "min")
+tab$rank_total  <- tab$rank_adj_r2 + tab$rank_aic
 tab <- tab[order(tab$rank_total), ]
 
 tab$beta_female <- round(tab$beta_female, 4)
@@ -148,8 +145,7 @@ print(tab[, c("model_id","n","beta_female","se_female","p_value","adj_r2","aic",
               "rank_adj_r2","rank_aic","rank_total","controls")],
       row.names = FALSE)
 
-tab_export <- tab[, c("model_id","beta_female","se_female",
-                      "adj_r2","aic")]
+tab_export <- tab[, c("model_id","beta_female","se_female", "adj_r2","aic")]
 
 tabla_png <- tab_export |>
   gt() |>
@@ -173,15 +169,16 @@ tabla_png <- tab_export |>
     decimals = 2
   )
 
-gtsave(tabla_png,
-       filename = "model_comparison.png",
-       path = "02_output/tables/02_section2_gendergap_income")
+gtsave(tabla_png, filename = "model_comparison.png", path = out_tab)
 
-#Elige el mejor control
-best_idx <- as.integer(sub("M", "", tab$model_id[1]))
+# Best model 
+best_id <- tab$model_id[1]
+best_idx <- as.integer(sub("M", "", best_id))
 best_controls <- control_sets[[best_idx]]
+best_controls_str <- paste(best_controls, collapse = " + ")
+f_best_ols <- as.formula(paste("log_income ~ female +", best_controls_str))
 
-cat(sprintf("\nUsando el mejor modelo según ranking: %s\n", tab$model_id[1]))
+cat(sprintf("\nUsando el mejor modelo según ranking: %s\n", best_id))
 cat("Controles:\n")
 cat(paste0("  ", paste(best_controls, collapse = " + "), "\n"))
 
@@ -190,33 +187,27 @@ cat("PASO 4: REGRESIÓN CONDICIONAL SIN FWL\n")
 cat("================================================================================\n") # nolint
 
 # Gap condicional con controles para verificación modelo FWL
-# --- 4A) OLS condicional completo (sin FWL)
-controls_str <- paste(best_controls, collapse = " + ")
-f_ols_str <- paste("log_income ~ female +", controls_str)
-f_ols <- as.formula(f_ols_str)
 
-model2 <- lm(f_ols, data = data)
-s2 <- summary(model2)
+model_cond_ols <- lm(f_best_ols, data = data)
+s_cond_ols <- summary(model_cond_ols)
 
-beta_ols <- coef(model2)[["female"]]
-se_ols   <- s2$coefficients["female", "Std. Error"]
-t_ols    <- s2$coefficients["female", "t value"]
-p_ols    <- s2$coefficients["female", "Pr(>|t|)"]
+beta_ols <- coef(model_cond_ols)[["female"]]
+se_ols   <- s_cond_ols$coefficients["female", "Std. Error"]
+t_ols    <- s_cond_ols$coefficients["female", "t value"]
+p_ols    <- s_cond_ols$coefficients["female", "Pr(>|t|)"]
 
 cat("\nModelo OLS condicional (sin FWL)\n")
 cat(sprintf("  beta_female: %.4f\n", beta_ols))
 cat(sprintf("  SE: %.4f\n", se_ols))
 cat(sprintf("  t: %.3f\n", t_ols))
 cat(sprintf("  p-value: %.4g\n", p_ols))
-cat(sprintf("  N: %s\n", format(nobs(model2), big.mark=",")))
-cat(sprintf("  R²: %.4f\n", s2$r.squared))
-cat(sprintf("  R² ajustado: %.4f\n", s2$adj.r.squared))
-cat(sprintf("  AIC: %.2f\n", AIC(model2)))
+cat(sprintf("  N: %s\n", format(nobs(model_cond_ols), big.mark=",")))
+cat(sprintf("  R²: %.4f\n", s_cond_ols$r.squared))
+cat(sprintf("  R² ajustado: %.4f\n", s_cond_ols$adj.r.squared))
+cat(sprintf("  AIC: %.2f\n", AIC(model_cond_ols)))
 
-#FWL 
-run_fwl_once <- function(df, controls,
-                         y = "log_income",
-                         g = "female") {
+## FWL una sola vez (misma especificación)
+run_fwl_once <- function(df, controls, y = "log_income", g = "female") {
   controls_str <- paste(controls, collapse = " + ")
   f_g <- as.formula(paste(g, "~", controls_str))
   f_y <- as.formula(paste(y, "~", controls_str))
@@ -226,8 +217,7 @@ run_fwl_once <- function(df, controls,
 
   fwl <- lm(y_res ~ g_res)
   s <- summary(fwl)
-
-  list(
+    list(
     beta = coef(fwl)[["g_res"]],
     se   = s$coefficients["g_res", "Std. Error"],
     t    = s$coefficients["g_res", "t value"],
@@ -236,8 +226,7 @@ run_fwl_once <- function(df, controls,
   )
 }
 
-fwl_out <- run_fwl_once(data, best_controls, y = "log_income", g = "female")
-
+fwl_out <- run_fwl_once(data, best_controls)
 beta_hat <- fwl_out$beta
 se_fwl   <- fwl_out$se
 t_fwl    <- fwl_out$t
@@ -275,104 +264,69 @@ cat("\n=========================================================================
 cat("PASO 5: BOOTSTRAP\n")
 cat("================================================================================\n") # nolint
 
-set.seed(123)
-
-run_fwl_bootstrap <- function(df,
-                              controls,
-                              R = 500,
-                              y = "log_income",
-                              g = "female") {
-
+run_fwl_bootstrap <- function(df, controls, R = 500, y = "log_income", g = "female") {
   controls_str <- paste(controls, collapse = " + ")
   f_g <- as.formula(paste(g, "~", controls_str))
   f_y <- as.formula(paste(y, "~", controls_str))
 
-  boot_fun <- function(d, idx) {
+boot_fun <- function(d, idx) {
     dd <- d[idx, ]
-
     g_res <- resid(lm(f_g, data = dd))
     y_res <- resid(lm(f_y, data = dd))
-
     coef(lm(y_res ~ g_res))[["g_res"]]
   }
 
   boot::boot(df, statistic = boot_fun, R = R)
 }
 
-# Ejecutar bootstrap
 boot_res <- run_fwl_bootstrap(data, controls = best_controls, R = 500)
-
-# SE bootstrap
 se_boot <- sd(boot_res$t)
-
-# IC percentil
 ci_boot <- boot::boot.ci(boot_res, type = c("perc", "basic"))
 
-# Resultados del modelo OLS condicional (para SE analítico comparable)
-controls_str <- paste(best_controls, collapse = " + ")
-model_ols <- lm(as.formula(paste("log_income ~ female +", controls_str)), data = data)
-se_anal <- summary(model_ols)$coefficients["female", "Std. Error"]
-
-# Estimación puntual FWL (sin bootstrap) para reportar beta_hat consistente
-f_g <- as.formula(paste("female ~", controls_str))
-f_y <- as.formula(paste("log_income ~", controls_str))
-g_res <- resid(lm(f_g, data = data))
-y_res <- resid(lm(f_y, data = data))
-beta_hat <- coef(lm(y_res ~ g_res))[["g_res"]]
+# SE analítico condicional
+se_anal <- s_cond_ols$coefficients["female", "Std. Error"]
 
 cat("\n--- Resultados Gender Gap (Condicional) ---\n")
 cat(sprintf("N: %s\n", format(nrow(data), big.mark=",")))
 cat(sprintf("beta_female (FWL): %.4f\n", beta_hat))
 cat(sprintf("SE analítico (OLS): %.4f\n", se_anal))
 cat(sprintf("SE bootstrap: %.4f\n", se_boot))
-
 cat("\nIC bootstrap (ver objeto ci_boot):\n")
 print(ci_boot)
 
 cat("\n================================================================================\n") # nolint
-cat("PASO 6: TABLA COMPARATIVA\n")
+cat("PASO 6: TABLA COMPARATIVA CONDICIONAL E INCONDICIONAL\n")
 cat("================================================================================\n") # nolint
 
+# Uncondicional: 
+beta_uncond <- coef(model_uncond)[["female"]]
+se_uncond_anal <- s_uncond$coefficients["female", "Std. Error"]
+r2_uncond <- s_uncond$r.squared
+n_uncond <- nobs(model_uncond)
 
-# Modelo 1 Incondicional
-beta_uncond <- coef(model1)[["female"]]
-se_uncond_anal <- summary(model1)$coefficients["female", "Std. Error"]
-r2_uncond <- summary(model1)$r.squared
-n_uncond <- nobs(model1)
+# Condicional:
+beta_cond <- coef(model_cond_ols)[["female"]]
+se_cond_anal <- s_cond_ols$coefficients["female", "Std. Error"]
+r2_cond <- s_cond_ols$r.squared
+n_cond <- nobs(model_cond_ols)
 
-# Modelo 2 condicional
-model2 <- lm(as.formula(paste("log_income ~ female +", controls_str)), data = data)
-s2 <- summary(model2)
-
-# Beta y SE desde FWL
-beta_cond <- coef(model2)[["female"]]
-se_cond_anal <- s2$coefficients["female", "Std. Error"]
-r2_cond <- s2$r.squared
-n_cond <- nobs(model2)
-
+# Bootstrap para ambos modelos
 boot_uncond_fun <- function(d, idx){
   dd <- d[idx, ]
   coef(lm(log_income ~ female, data = dd))[["female"]]
 }
-
-set.seed(123)
 boot_uncond <- boot::boot(data, statistic = boot_uncond_fun, R = 500)
 se_uncond_boot <- sd(boot_uncond$t)
 
 boot_cond_fun <- function(d, idx){
   dd <- d[idx, ]
-  m <- lm(as.formula(paste("log_income ~ female +", controls_str)), data = dd)
-  coef(m)[["female"]]
+  coef(lm(f_best_ols, data = dd))[["female"]]
 }
-
-set.seed(123)
 boot_cond <- boot::boot(data, statistic = boot_cond_fun, R = 500)
 se_cond_boot <- sd(boot_cond$t)
 
-# 4. Tabla final
-
 results_table <- data.frame(
-  Specification = c("Unconditional", paste0("Conditional (", tab$model_id[1], ")")), # nolint
+  Specification = c("Unconditional", paste0("Conditional (", best_id, ")")),
   N = c(n_uncond, n_cond),
   Beta_Female = c(beta_uncond, beta_cond),
   SE_Analytical = c(se_uncond_anal, se_cond_anal),
@@ -380,14 +334,12 @@ results_table <- data.frame(
   R_squared = c(r2_uncond, r2_cond)
 )
 
-# Formato numérico
 results_table$Beta_Female <- round(results_table$Beta_Female, 4)
 results_table$SE_Analytical <- round(results_table$SE_Analytical, 4)
 results_table$SE_Bootstrap <- round(results_table$SE_Bootstrap, 4)
 results_table$R_squared <- round(results_table$R_squared, 4)
 
 print(results_table, row.names = FALSE)
-
 
 gt_tbl <- gt(results_table) |>
   tab_header(
@@ -403,50 +355,33 @@ gt_tbl <- gt(results_table) |>
     R_squared = "R²"
   )
 
-out_path <- "02_output/tables/02_section2_gendergap_income"
-gtsave(gt_tbl, filename = "05_gender_gap_table.png", path = out_path)
+gtsave(gt_tbl, filename = "02_gender_gap_table.png", path = out_tab)
 
-cat("\nGuardado: 02_output/tables/02_section2_gendergap_income/05_gender_gap_table.tex\n")
 
-cat("\n================================================================================\n") # nolint
+cat("\n================================================================================\n")
 cat("PASO 7: VISUALIZACIÓN PREDICTED AGE-LABOR INCOME PROFILES\n")
-cat("================================================================================\n") # nolint
+cat("================================================================================\n")
 
-out_fig <- "02_output/figures/02_section2_gendergap_income"
-
-model_interact <- lm(
-  log_income ~ female*(age + age_squared) +
-    totalHoursWorked +
-    factor(relab) +
-    factor(maxEducLevel),
-  data = data
-)
+model_interact <- lm( #MODIFICAR 
+  log_income ~ female*(age + age_squared) +totalHoursWorked + factor(relab) + factor(maxEducLevel), data = data) # nolint
 
 cat("\nModelo interacción estimado:\n")
-print(summary(model_interact)$coefficients[c("female","age","age_squared","female:age","female:age_squared"), , drop=FALSE])
+print(summary(model_interact)$coefficients[c("female","age","age_squared","female:age","female:age_squared"), , drop=FALSE]) # nolint
 
-# 2) Grid para predicción
 age_seq <- seq(min(data$age, na.rm = TRUE),
                max(data$age, na.rm = TRUE),
                by = 1)
 
 mean_hours <- mean(data$totalHoursWorked, na.rm = TRUE)
+base_relab <- levels(factor(data$relab))[3]
+base_educ  <- levels(factor(data$maxEducLevel))[6]
 
-# Categorías base cambiar 
-base_relab <- levels(factor(data$relab))[1]
-base_educ  <- levels(factor(data$maxEducLevel))[1]
-
-pred_data <- expand.grid(
-  age = age_seq,
-  female = c(0, 1)
-)
-
+pred_data <- expand.grid(age = age_seq, female = c(0, 1))
 pred_data$age_squared <- pred_data$age^2
 pred_data$totalHoursWorked <- mean_hours
 pred_data$relab <- factor(base_relab, levels = levels(factor(data$relab)))
 pred_data$maxEducLevel <- factor(base_educ, levels = levels(factor(data$maxEducLevel)))
 
-# 3) Predicciones
 pred_data$pred_log <- as.numeric(predict(model_interact, newdata = pred_data))
 pred_data$pred_income <- exp(pred_data$pred_log)
 
@@ -454,22 +389,16 @@ pred_data$gender <- factor(pred_data$female,
                            levels = c(0, 1),
                            labels = c("Male", "Female"))
 
-# 4) Peaks empíricos (por grid)
 peaks <- pred_data %>%
   group_by(gender) %>%
   slice_max(order_by = pred_income, n = 1, with_ties = FALSE) %>%
-  ungroup()
-
-# Crear label_y para que el texto no se monte sobre el punto
-peaks <- peaks %>%
+  ungroup() %>%
   mutate(label_y = pred_income * 1.05)
 
 cat("\nPeaks (por grid de edad):\n")
 print(peaks %>% select(gender, age, pred_income))
 
-# 5) Peaks analíticos (fórmula del vértice de la parábola)
 cfs <- coef(model_interact)
-
 b_age   <- cfs[["age"]]
 b_age2  <- cfs[["age_squared"]]
 b_fage  <- if ("female:age" %in% names(cfs)) cfs[["female:age"]] else 0
@@ -482,7 +411,6 @@ cat("\nPeaks analíticos (vértice):\n")
 cat(sprintf("  Peak age (Male):   %.2f\n", peak_age_male_analytic))
 cat(sprintf("  Peak age (Female): %.2f\n", peak_age_fem_analytic))
 
-# 6) Calcular gap en el peak (usando peaks empíricos)
 peak_m <- peaks %>% filter(gender == "Male")   %>% slice(1)
 peak_f <- peaks %>% filter(gender == "Female") %>% slice(1)
 
@@ -493,7 +421,6 @@ cat("\nGap en el peak (Female vs Male, usando predicción en el peak):\n")
 cat(sprintf("  Gap log: %.4f\n", gap_peak_log))
 cat(sprintf("  Gap %%:  %.2f%%\n", gap_peak_pct))
 
-# 7) Plot (con peaks)
 p <- ggplot(pred_data, aes(age, pred_income, color = gender)) +
   geom_line(linewidth = 1.2) +
   geom_point(data = peaks, size = 3) +
@@ -505,27 +432,20 @@ p <- ggplot(pred_data, aes(age, pred_income, color = gender)) +
     show.legend = FALSE
   ) +
   scale_y_continuous(expand = expansion(mult = c(0.05, 0.15))) +
-  labs(
-    x = "Age",
-    y = "Predicted labor income (levels)",
-    color = ""
-  ) +
+  labs(x = "Age", y = "Predicted labor income (levels)", color = "") +
   theme_bw()
 
 print(p)
 
-# 8) Guardar figura
-out_fig <- "02_output/figures/02_section2_gendergap_income"
-if (!dir.exists(out_fig)) dir.create(out_fig, recursive = TRUE)
-
-ggsave(file.path(out_fig, "05_age_labor_income_profiles.png"),
+ggsave(file.path(out_fig, "age_labor_income_profiles.png"),
        plot = p, width = 10, height = 6, dpi = 300)
 
-cat(sprintf("\nGuardado: %s\n", file.path(out_fig, "05_age_labor_income_profiles.png")))
+cat(sprintf("\nGuardado: %s\n", file.path(out_fig, "Age_labor_income_profiles.png")))
 
-cat("\n================================================================================\n")  # nolint
+
+cat("\n================================================================================\n")
 cat("PASO 8: IMPLIED PEAK AGES \n")
-cat("================================================================================\n")  # nolint
+cat("================================================================================\n")
 
 coefs <- coef(model_interact)
 
@@ -534,22 +454,14 @@ b_age2   <- coefs[["age_squared"]]
 b_age_f  <- if ("female:age" %in% names(coefs)) coefs[["female:age"]] else 0
 b_age2_f <- if ("female:age_squared" %in% names(coefs)) coefs[["female:age_squared"]] else 0
 
-# Protección contra división por ~0
-if (is.na(b_age2) || abs(b_age2) < 1e-10) stop("age_squared ~ 0: no se puede calcular peak_male.")
-if (is.na(b_age2 + b_age2_f) || abs(b_age2 + b_age2_f) < 1e-10) stop("age_squared + interacción ~ 0: no se puede calcular peak_female.")
-
 peak_male   <- -b_age / (2 * b_age2)
 peak_female <- -(b_age + b_age_f) / (2 * (b_age2 + b_age2_f))
 
 cat(sprintf("\nPeak age (Male):   %.3f\n", peak_male))
 cat(sprintf("Peak age (Female): %.3f\n", peak_female))
 
-# =========================
-# 2) Bootstrap peaks
-# =========================
 boot_peak_fun <- function(d, idx){
   dd <- d[idx, ]
-
   m <- lm(log_income ~ female*(age + age_squared) +
             totalHoursWorked +
             factor(relab) +
@@ -566,7 +478,6 @@ boot_peak_fun <- function(d, idx){
   denom_m <- 2 * b_age2
   denom_f <- 2 * (b_age2 + b_age2_f)
 
-  # Si la parábola queda plana en una réplica, devolvemos NA
   if (is.na(denom_m) || abs(denom_m) < 1e-10) return(c(NA_real_, NA_real_))
   if (is.na(denom_f) || abs(denom_f) < 1e-10) return(c(NA_real_, NA_real_))
 
@@ -576,50 +487,36 @@ boot_peak_fun <- function(d, idx){
   c(peak_m, peak_f)
 }
 
-set.seed(123)
 boot_peaks <- boot::boot(data, statistic = boot_peak_fun, R = 500)
 
-# =========================
-# 3) SE + CI (percentil)
-# =========================
 se_peak_male   <- sd(boot_peaks$t[, 1], na.rm = TRUE)
 se_peak_female <- sd(boot_peaks$t[, 2], na.rm = TRUE)
 
 ci_male   <- boot::boot.ci(boot_peaks, index = 1, type = "perc")
 ci_female <- boot::boot.ci(boot_peaks, index = 2, type = "perc")
 
-ci_male_lower <- ci_male$percent[4]
-ci_male_upper <- ci_male$percent[5]
-
-ci_female_lower <- ci_female$percent[4]
-ci_female_upper <- ci_female$percent[5]
-
-# =========================
-# 4) Tabla peaks
-# =========================
 peak_table <- data.frame(
   Group = c("Male", "Female"),
   Peak_Age = c(as.numeric(peak_male), as.numeric(peak_female)),
   SE_Bootstrap = c(se_peak_male, se_peak_female),
-  CI_Lower = c(ci_male_lower, ci_female_lower),
-  CI_Upper = c(ci_male_upper, ci_female_upper)
+  CI_Lower = c(ci_male$percent[4], ci_female$percent[4]),
+  CI_Upper = c(ci_male$percent[5], ci_female$percent[5])
 )
-
-# Redondeo bonito para reporte
 peak_table$Peak_Age <- round(peak_table$Peak_Age, 2)
 peak_table$SE_Bootstrap <- round(peak_table$SE_Bootstrap, 2)
 peak_table$CI_Lower <- round(peak_table$CI_Lower, 2)
 peak_table$CI_Upper <- round(peak_table$CI_Upper, 2)
 
 print(peak_table, row.names = FALSE)
-# Exportar TEX
-if (!requireNamespace("stargazer", quietly = TRUE)) install.packages("stargazer")
-stargazer::stargazer(peak_table,
-                     summary = FALSE,
-                     digits = 2,
-                     rownames = FALSE,
-                     title = "Implied Peak Ages by Gender",
-                     out = file.path(out_tab, "05_peak_ages_section2.tex"))
+
+stargazer::stargazer(
+  peak_table,
+  summary = FALSE,
+  digits = 2,
+  rownames = FALSE,
+  title = "Implied Peak Ages by Gender",
+  out = file.path(out_tab, "05_peak_ages_section2.tex")
+)
 
 cat(sprintf("\nGuardado TEX: %s\n", file.path(out_tab, "05_peak_ages_section2.tex")))
 

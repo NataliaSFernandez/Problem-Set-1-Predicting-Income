@@ -133,8 +133,8 @@ cat(sprintf("  R² Train: %.4f\n", summary(model3_train)$r.squared))
 cat("\nModelo 4 (Sección 2 - Condicional): log_income ~ female + controles\n")
 
 # Definir controles
-control_num <- c("age", "age_squared", "totalHoursWorked", "formal", "p6426")
-control_fac <- c("maxEducLevel", "relab", "oficio", "sizeFirm")
+control_num <- c("age", "age_squared", "totalHoursWorked", "formal", "p6426", "p6240")
+control_fac <- c("maxEducLevel", "relab", "oficio", "sizeFirm", "estrato1")
 
 # Convertir categóricas a factor en TRAIN
 for(v in control_fac){

@@ -123,7 +123,9 @@ c("age", "age_squared", "factor(maxEducLevel)"), #Baseline M1
 c("age", "age_squared", "factor(maxEducLevel)", "totalHoursWorked"), #Intensidad laboral M2
 c("age", "age_squared", "factor(maxEducLevel)", "totalHoursWorked", "factor(relab)","factor(oficio)"), #Estructura oupacional M3
 c("age", "age_squared", "factor(maxEducLevel)", "totalHoursWorked", "factor(relab)","factor(oficio)",
-"factor(sizeFirm)","formal", "p6426") #Empresa y formalidad M4
+"factor(sizeFirm)","formal", "p6426"),
+c("age", "age_squared", "factor(maxEducLevel)", "totalHoursWorked", "factor(relab)","factor(oficio)",
+"factor(sizeFirm)","formal", "p6426", "factor(p6240)","factor(estrato1)") #Empresa y condiciones de vida M5
 )
 
 #Ejecutar modelo
@@ -301,13 +303,13 @@ cat("===========================================================================
 # Uncondicional: 
 beta_uncond <- coef(model_uncond)[["female"]]
 se_uncond_anal <- s_uncond$coefficients["female", "Std. Error"]
-r2_uncond <- s_uncond$r.squared
+r2_uncond <- s_uncond$adj.r.squared
 n_uncond <- nobs(model_uncond)
 
 # Condicional:
 beta_cond <- coef(model_cond_ols)[["female"]]
 se_cond_anal <- s_cond_ols$coefficients["female", "Std. Error"]
-r2_cond <- s_cond_ols$r.squared
+r2_cond <- s_cond_ols$adj.r.squared
 n_cond <- nobs(model_cond_ols)
 
 # Bootstrap para ambos modelos
@@ -327,17 +329,17 @@ se_cond_boot <- sd(boot_cond$t)
 
 results_table <- data.frame(
   Specification = c("Unconditional", paste0("Conditional (", best_id, ")")),
-  N = c(n_uncond, n_cond),
   Beta_Female = c(beta_uncond, beta_cond),
   SE_Analytical = c(se_uncond_anal, se_cond_anal),
   SE_Bootstrap = c(se_uncond_boot, se_cond_boot),
-  R_squared = c(r2_uncond, r2_cond)
+  Adj_R_squared = c(r2_uncond, r2_cond)
 )
 
 results_table$Beta_Female <- round(results_table$Beta_Female, 4)
 results_table$SE_Analytical <- round(results_table$SE_Analytical, 4)
 results_table$SE_Bootstrap <- round(results_table$SE_Bootstrap, 4)
-results_table$R_squared <- round(results_table$R_squared, 4)
+results_table$Adj_R_squared <- round(results_table$Adj_R_squared, 4)
+
 
 print(results_table, row.names = FALSE)
 
@@ -348,11 +350,10 @@ gt_tbl <- gt(results_table) |>
   ) |>
   cols_label(
     Specification = "Specification",
-    N = "N",
     Beta_Female = "Beta (female)",
     SE_Analytical = "SE (Analytical)",
     SE_Bootstrap = "SE (Bootstrap)",
-    R_squared = "R²"
+    Adj_R_squared = "Adj_R²"
   )
 
 gtsave(gt_tbl, filename = "02_gender_gap_table.png", path = out_tab)
@@ -362,8 +363,8 @@ cat("\n=========================================================================
 cat("PASO 7: VISUALIZACIÓN PREDICTED AGE-LABOR INCOME PROFILES\n")
 cat("================================================================================\n")
 
-model_interact <- lm( #MODIFICAR 
-  log_income ~ female*(age + age_squared) +totalHoursWorked + factor(relab) + factor(maxEducLevel), data = data) # nolint
+model_interact <- lm(  
+  log_income ~ female*(age + age_squared) +totalHoursWorked +factor(maxEducLevel) + factor(relab) + factor(oficio) + factor(sizeFirm) + formal + p6426 + factor(p6240) + factor(estrato1), data = data) # nolint
 
 cat("\nModelo interacción estimado:\n")
 print(summary(model_interact)$coefficients[c("female","age","age_squared","female:age","female:age_squared"), , drop=FALSE]) # nolint
@@ -374,13 +375,25 @@ age_seq <- seq(min(data$age, na.rm = TRUE),
 
 mean_hours <- mean(data$totalHoursWorked, na.rm = TRUE)
 base_relab <- levels(factor(data$relab))[3]
-base_educ  <- levels(factor(data$maxEducLevel))[6]
+base_educ  <- levels(factor(data$maxEducLevel))[5]
+base_oficio <- levels(factor(data$oficio))[1]
+base_sizeFirm <- levels(factor(data$sizeFirm))[1]
+base_estrato1 <- levels(factor(data$estrato1))[4]
+base_p6240 <- levels(factor(data$p6240))[1]
+
 
 pred_data <- expand.grid(age = age_seq, female = c(0, 1))
 pred_data$age_squared <- pred_data$age^2
 pred_data$totalHoursWorked <- mean_hours
+pred_data$formal <- mean(data$formal, na.rm = TRUE)
+pred_data$p6426 <- mean(data$p6426, na.rm = TRUE)
+
 pred_data$relab <- factor(base_relab, levels = levels(factor(data$relab)))
 pred_data$maxEducLevel <- factor(base_educ, levels = levels(factor(data$maxEducLevel)))
+pred_data$oficio <- factor(base_oficio, levels = levels(factor(data$oficio)))
+pred_data$sizeFirm <- factor(base_sizeFirm, levels = levels(factor(data$sizeFirm)))
+pred_data$p6240 <- factor(base_p6240, levels = levels(factor(data$p6240)))
+pred_data$estrato1 <- factor(base_estrato1, levels = levels(factor(data$estrato1)))
 
 pred_data$pred_log <- as.numeric(predict(model_interact, newdata = pred_data))
 pred_data$pred_income <- exp(pred_data$pred_log)

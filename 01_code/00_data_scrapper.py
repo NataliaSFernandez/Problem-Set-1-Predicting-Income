@@ -1,5 +1,5 @@
 """
-Script: 01_Data_scrapper.py
+Script: 00_Data_scrapper.py
 
 Descripción:
 Este script descarga y consolida los datos de la Encuesta GEIH 2018 disponibles
@@ -15,7 +15,7 @@ Entradas:
 
 Salidas:
 - Un archivo CSV llamado 'geih_2018_completo.csv' que contiene la unión de todas
-  las tablas extraídas.
+  las tablas extraídas y las guarda en 00_data/raw/.
 - Impresiones en consola del estado de cada solicitud HTTP y una vista previa
   de los datos consolidados.
 
@@ -31,7 +31,7 @@ from bs4 import BeautifulSoup
 
 dfs = []  
 
-for num in range(1, 11):  # 1 a 11
+for num in range(1, 11):  # 1 a 10
     url = f"https://ignaciomsarmiento.github.io/GEIH2018_sample/pages/geih_page_{num}.html"
     headers = {"User-Agent": "Mozilla/5.0"}
 

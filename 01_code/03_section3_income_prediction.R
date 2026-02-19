@@ -88,26 +88,26 @@ summary(model2_train)
 model3_train <- lm(log_income ~ female, data = train_df)
 summary(model3_train)
 
-#Modelo 4: Gender gap condicional
-control <- c("age", "age_squared", "factor(maxEducLevel)", "totalHoursWorked",
-             "factor(relab)", "factor(oficio)", "factor(sizeFirm)", "formal", "p6426")
-
-f4 <- as.formula(paste("log_income ~", paste(control, collapse = " + ")))
-model4_train <- lm(f4, data = train_df)
-summary(model4_train)
-
-# variables categóricas 
-cat_vars <- c("maxEducLevel", "relab", "oficio", "sizeFirm")
-
-for(v in cat_vars){
+# Modelo 4: Gender gap condicional 
+control_num <- c("age", "age_squared", "totalHoursWorked", "formal", "p6426")
+control_fac <- c("maxEducLevel", "relab", "oficio", "sizeFirm") #Categorias
+# categóricas como factor EN TRAIN
+for(v in control_fac){
   train_df[[v]] <- factor(train_df[[v]])
+}
+# Alinear niveles en VALID con base en TRAIN (evita "new levels")
+for(v in control_fac){
   valid_df[[v]] <- factor(valid_df[[v]], levels = levels(train_df[[v]]))
 }
-
-valid_df$pred_model4 <- predict(model4_train, newdata = valid_df)
-
-# Filas que quedaron con NA por niveles nuevos
-sum(is.na(valid_df$pred_model4))
+# Construir fórmula: numéricas + factor(categóricas)
+rhs <- c(
+  control_num,
+  paste0("factor(", control_fac, ")")
+)
+f4 <- as.formula(paste("log_income ~", paste(rhs, collapse = " + ")))
+# Estimar modelo 4 en TRAIN
+model4_train <- lm(f4, data = train_df)
+summary(model4_train)
 
 cat("\n================================================================================\n") # nolint
 cat("PASO 4:  PREDICCIÓN SET DE VALIDACIÓN\n")
@@ -117,7 +117,11 @@ cat("===========================================================================
 valid_df$pred_model3 <- predict(model3_train, newdata = valid_df)
 
 #Modelo 4: Gender gap condicional
-valid_df$pred_model4 <- predict(model4_train, newdata = valid_df)   
+valid_df$pred_model4 <- predict(model4_train, newdata = valid_df) 
+
+# cuántas predicciones quedaron NA (niveles nuevos / missing en covariables)
+n_na_pred4 <- sum(is.na(valid_df$pred_model4))
+cat("Predicciones NA en Modelo 4:", n_na_pred4, "de", nrow(valid_df), "\n")
 
 cat("\n================================================================================\n") # nolint
 cat("PASO 5:  CALCULO RMSE\n")
@@ -126,8 +130,10 @@ cat("===========================================================================
 #Modelo 3: Gender gap incondicional
 rmse_model3 <- sqrt(mean((valid_df$log_income - valid_df$pred_model3)^2))
 
-#Modelo 4: Gender gap condicional
+# Modelo 4 (na.rm=TRUE porque pueden existir NA en pred_model4)
 rmse_model4 <- sqrt(mean((valid_df$log_income - valid_df$pred_model4)^2, na.rm = TRUE))
 
 cat("RMSE Model 3 (Validation):", rmse_model3, "\n")
 cat("RMSE Model 4 (Validation):", rmse_model4, "\n")
+ok4 <- !is.na(valid_df$pred_model4) & !is.na(valid_df$log_income)
+cat("Obs usadas en RMSE Modelo 4:", sum(ok4), "de", nrow(valid_df), "\n")

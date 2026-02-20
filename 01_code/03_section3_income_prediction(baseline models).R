@@ -132,7 +132,7 @@ cat(sprintf("  R² Train: %.4f\n", summary(model3_train)$r.squared))
 # Modelo 4 (Sección 2): Gender gap condicional
 cat("\nModelo 4 (Sección 2 - Condicional): log_income ~ female + controles\n")
 
-control_num <- c("age", "age_squared", "totalHoursWorked", "formal", "p6426", "p6240","formal")
+control_num <- c("age", "age_squared", "totalHoursWorked", "p6426", "p6240","formal")
 control_fac <- c("maxEducLevel", "relab", "oficio", "sizeFirm", "estrato1")
 
 # Convertir categóricas a factor en TRAIN

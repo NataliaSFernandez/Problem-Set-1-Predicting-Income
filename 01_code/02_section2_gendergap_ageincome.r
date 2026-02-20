@@ -246,7 +246,7 @@ bias_proxy_m5 <- NA_real_  # el modelo flexible no tiene esa restricciÃ³n especÃ
 
 # --- 3) Tabla final ---
 results_compare <- data.frame(
-  Model = c("No interaction (Model 4)", "With interaction (Model 5)"),
+  Model = c("No interaction (Model 1)", "With interaction (Model 2)"),
   Parameters_K = c(k_m4, k_m5),          # proxy varianza/complejidad
   Mean_SE = c(mean_se_m4, mean_se_m5),   # proxy varianza (opcional)
   Adj_R2 = c(adjr2_m4, adjr2_m5),
@@ -274,7 +274,7 @@ results_compare$SS_added <- round(results_compare$SS_added, 2)
 gt_tbl <- gt(results_compare) |>
   tab_header(
     title = "Model Comparison: Flexibility Trade-off & Nested F-test",
-    subtitle = "Model 4 (No interaction) vs Model 5 (With interaction)"
+    subtitle = "Model 1 (No interaction) vs Model 2 (With interaction)"
   ) |>
   cols_label(
     Parameters_K = "K (complexity)",

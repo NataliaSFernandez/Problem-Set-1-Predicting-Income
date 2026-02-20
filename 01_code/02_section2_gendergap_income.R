@@ -363,5 +363,5 @@ gt_tbl <- gt(results_table) |>
     Adj_R_squared = "Adj_R²"
   )
 
-gtsave(gt_tbl, filename = "02_gender_gap_table.png", path = out_tab)
+gtsave(gt_tbl, filename = "gender_gap_table.png", path = out_tab)
 

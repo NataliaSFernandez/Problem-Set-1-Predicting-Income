@@ -307,17 +307,10 @@ b_age2_f <- if ("female:age_squared" %in% names(coefs)) coefs[["female:age_squar
 peak_male   <- -b_age / (2 * b_age2)
 peak_female <- -(b_age + b_age_f) / (2 * (b_age2 + b_age2_f))
 
-cat(sprintf("\nPeak age (Male):   %.3f\n", peak_male))
-cat(sprintf("Peak age (Female): %.3f\n", peak_female))
-
 boot_peak_fun <- function(d, idx){
   dd <- d[idx, ]
-  m <- lm(log_income ~ female*(age + age_squared) +
-            totalHoursWorked +
-            factor(relab) +
-            factor(maxEducLevel),
-          data = dd)
 
+  m <- lm(formula(model_interact), data = dd)
   cfs <- coef(m)
 
   b_age    <- cfs[["age"]]
@@ -328,8 +321,8 @@ boot_peak_fun <- function(d, idx){
   denom_m <- 2 * b_age2
   denom_f <- 2 * (b_age2 + b_age2_f)
 
-  if (is.na(denom_m) || abs(denom_m) < 1e-10) return(c(NA_real_, NA_real_))
-  if (is.na(denom_f) || abs(denom_f) < 1e-10) return(c(NA_real_, NA_real_))
+  if (!is.finite(denom_m) || abs(denom_m) < 1e-10) return(c(NA_real_, NA_real_))
+  if (!is.finite(denom_f) || abs(denom_f) < 1e-10) return(c(NA_real_, NA_real_))
 
   peak_m <- -b_age / denom_m
   peak_f <- -(b_age + b_age_f) / denom_f
@@ -337,31 +330,38 @@ boot_peak_fun <- function(d, idx){
   c(peak_m, peak_f)
 }
 
-boot_peaks <- boot::boot(data, statistic = boot_peak_fun, R = 1000)
+set.seed(123)
+boot_peaks <- boot::boot(data = data, statistic = boot_peak_fun, R = 1000)
 
-se_peak_male   <- sd(boot_peaks$t[, 1], na.rm = TRUE)
-se_peak_female <- sd(boot_peaks$t[, 2], na.rm = TRUE)
+bm <- boot_peaks$t[,1]; bm <- bm[is.finite(bm)]
+bf <- boot_peaks$t[,2]; bf <- bf[is.finite(bf)]
 
-ci_male   <- boot::boot.ci(boot_peaks, index = 1, type = "perc")
-ci_female <- boot::boot.ci(boot_peaks, index = 2, type = "perc")
+se_peak_male   <- sd(bm)
+se_peak_female <- sd(bf)
+
+ci_male   <- quantile(bm, probs = c(0.025, 0.975), na.rm = TRUE)
+ci_female <- quantile(bf, probs = c(0.025, 0.975), na.rm = TRUE)
 
 peak_table <- data.frame(
   Group = c("Male", "Female"),
-  Peak_Age = c(as.numeric(peak_male), as.numeric(peak_female)),
+  Peak_Age = c(peak_male, peak_female),
   SE_Bootstrap = c(se_peak_male, se_peak_female),
-  CI_Lower = c(ci_male$percent[4], ci_female$percent[4]),
-  CI_Upper = c(ci_male$percent[5], ci_female$percent[5])
+  CI_Lower = c(ci_male[[1]], ci_female[[1]]),
+  CI_Upper = c(ci_male[[2]], ci_female[[2]])
 )
-peak_table$Peak_Age <- round(peak_table$Peak_Age, 2)
-peak_table$SE_Bootstrap <- round(peak_table$SE_Bootstrap, 2)
-peak_table$CI_Lower <- round(peak_table$CI_Lower, 2)
-peak_table$CI_Upper <- round(peak_table$CI_Upper, 2)
+
+peak_table <- transform(
+  peak_table,
+  Peak_Age = round(Peak_Age, 2),
+  SE_Bootstrap = round(SE_Bootstrap, 2),
+  CI_Lower = round(CI_Lower, 2),
+  CI_Upper = round(CI_Upper, 2)
+)
 
 print(peak_table, row.names = FALSE)
 
-
-gt_tbl <- gt(peak_table) |>
-  tab_header(title = "Implied Peak Ages by Gender") |>
-  fmt_number(columns = everything(), decimals = 2)
+gt_tbl <- gt::gt(peak_table) |>
+  gt::tab_header(title = "Implied Peak Ages by Gender") |>
+  gt::fmt_number(columns = c(Peak_Age, SE_Bootstrap, CI_Lower, CI_Upper), decimals = 2)
 
 gtsave(gt_tbl, filename = "peak_ages_section2.png", path = out_tab)

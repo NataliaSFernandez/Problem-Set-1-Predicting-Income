@@ -287,3 +287,80 @@ print(f"  Ingreso promedio: ${data['y_total_m'].mean():,.0f}")
 print(f"  Brecha de género (media): {gap_pct:.1f}%")
 
 print("\n" + "="*80)
+
+# ==============================================================================
+# TABLA DESCRIPTIVA GENERO
+# ==============================================================================
+
+out_dir = "02_output/tables/00_descriptive_stats"
+# Separar por género
+male   = data[data['female'] == 0].copy()
+fem    = data[data['female'] == 1].copy()
+
+# % educación terciaria (ajusta si tu código es diferente)
+terciary_code = 7
+pct_ter_male = (male['maxEducLevel'] == terciary_code).mean() * 100
+pct_ter_fem  = (fem['maxEducLevel'] == terciary_code).mean() * 100
+
+# Crear tabla
+desc_table = pd.DataFrame({
+    "Variable": [
+        "Ingreso promedio (COP)",
+        "Ingreso mediano (COP)",
+        "Horas promedio por semana",
+        "Edad promedio",
+        "% educación terciaria",
+        "N observaciones"
+    ],
+    "Hombres": [
+        male['y_total_m'].mean(),
+        male['y_total_m'].median(),
+        male['totalHoursWorked'].mean(),
+        male['age'].mean(),
+        pct_ter_male,
+        len(male)
+    ],
+    "Mujeres": [
+        fem['y_total_m'].mean(),
+        fem['y_total_m'].median(),
+        fem['totalHoursWorked'].mean(),
+        fem['age'].mean(),
+        pct_ter_fem,
+        len(fem)
+    ]
+})
+
+# Diferencia (%) = (Mujeres - Hombres) / Hombres * 100
+desc_table["Diferencia (%)"] = (desc_table["Mujeres"] - desc_table["Hombres"]) / desc_table["Hombres"] * 100
+
+# Redondear (excepto N)
+mask = desc_table["Variable"] != "N observaciones"
+desc_table.loc[mask, ["Hombres", "Mujeres"]] = desc_table.loc[mask, ["Hombres", "Mujeres"]].round(2)
+desc_table["Diferencia (%)"] = desc_table["Diferencia (%)"].round(1)
+
+print("\nTabla descriptiva final:")
+print(desc_table.to_string(index=False))
+
+# -----------------------------
+# Exportar como imagen (PNG)
+# -----------------------------
+fig, ax = plt.subplots(figsize=(10, 2.8))
+ax.axis('off')
+
+tbl = ax.table(
+    cellText=desc_table.values,
+    colLabels=desc_table.columns,
+    cellLoc='center',
+    loc='center'
+)
+
+tbl.auto_set_font_size(False)
+tbl.set_fontsize(10)
+tbl.scale(1, 1.5)
+
+plt.tight_layout()
+out_path = os.path.join(out_dir, "descriptive_table_gender.png")
+plt.savefig(out_path, dpi=300, bbox_inches="tight")
+plt.close()
+
+print(f"\nTabla descriptiva guardada como imagen: {out_path}")

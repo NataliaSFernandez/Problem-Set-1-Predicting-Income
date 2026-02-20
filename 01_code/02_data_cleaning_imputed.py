@@ -441,6 +441,81 @@ print(f"  Observaciones imputadas: {n_imputed} ({n_imputed/len(data_filtered)*10
 print(f"  Observaciones observadas: {len(data_filtered)-n_imputed} ({(len(data_filtered)-n_imputed)/len(data_filtered)*100:.1f}%)")
 
 # ==============================================================================
+# TABLA DESCRIPTIVA GENERO
+# ==============================================================================
+
+# Separar por género
+male   = data_filtered[data_filtered['female'] == 0]
+female = data_filtered[data_filtered['female'] == 1]
+terciary_code = 7
+
+pct_ter_male = (male['maxEducLevel'] == terciary_code).mean() * 100
+pct_ter_fem  = (female['maxEducLevel'] == terciary_code).mean() * 100
+
+# Crear tabla base
+desc_table = pd.DataFrame({
+    "Variable": [
+        "Ingreso promedio (COP)",
+        "Ingreso mediano (COP)",
+        "Horas promedio por semana",
+        "(%) educación terciaria",
+        "Edad promedio",
+        "N observaciones"
+    ],
+    "Hombres": [
+        male['y_total_m'].mean(),
+        male['y_total_m'].median(),
+        male['totalHoursWorked'].mean(),
+        male['age'].mean(),
+        pct_ter_male,
+        len(male)
+    ],
+    "Mujeres": [
+        female['y_total_m'].mean(),
+        female['y_total_m'].median(),
+        female['totalHoursWorked'].mean(),
+        female['age'].mean(),
+        pct_ter_fem,
+        len(female)
+    ]
+})
+
+
+# Calcular diferencia porcentual (Mujeres vs Hombres)
+desc_table["Diferencia (%)"] = (
+    (desc_table["Mujeres"] - desc_table["Hombres"]) /
+    desc_table["Hombres"] * 100
+)
+
+# Redondear
+desc_table.loc[desc_table["Variable"] != "N observaciones", ["Hombres","Mujeres"]] = \
+    desc_table.loc[desc_table["Variable"] != "N observaciones", ["Hombres","Mujeres"]].round(2)
+
+desc_table["Diferencia (%)"] = desc_table["Diferencia (%)"].round(1)
+
+print("\nTabla descriptiva final:")
+print(desc_table)
+
+fig, ax = plt.subplots(figsize=(9, 3))
+ax.axis('off')
+
+table = ax.table(
+    cellText=desc_table.values,
+    colLabels=desc_table.columns,
+    cellLoc='center',
+    loc='center'
+)
+
+table.auto_set_font_size(False)
+table.set_fontsize(10)
+table.scale(1, 1.5)
+
+plt.tight_layout()
+plt.savefig("02_output/tables/00_descriptive_stats/descriptive_table_gender.png", dpi=300, bbox_inches="tight")
+plt.close()
+
+
+# ==============================================================================
 # PASO 10: GUARDAR DATOS LIMPIOS
 # ==============================================================================
 

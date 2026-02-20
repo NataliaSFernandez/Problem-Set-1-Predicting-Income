@@ -1,5 +1,5 @@
 ################################################################################
-# PROBLEM SET 1: Predicting Income
+# Problem SET 1: Predicting Income
 # Section 2: Gender–Labor Income Gap
 # Script 02: Gender_Labor_Income_Gap.R
 ################################################################################
@@ -59,7 +59,7 @@ suppressMessages({
 
 out_tab <- "02_output/tables/02_section2_gendergap_income"
 out_fig <- "02_output/figures/02_section2_gendergap_income"
-# Ensure output directories exist
+
 if (!dir.exists(out_tab)) dir.create(out_tab, recursive = TRUE, showWarnings = FALSE)
 if (!dir.exists(out_fig)) dir.create(out_fig, recursive = TRUE, showWarnings = FALSE)
 
@@ -127,7 +127,7 @@ c("age", "age_squared", "factor(maxEducLevel)", "totalHoursWorked", "factor(rela
 c("age", "age_squared", "factor(maxEducLevel)", "totalHoursWorked", "factor(relab)","factor(oficio)",
 "factor(sizeFirm)","formal", "p6426"),
 c("age", "age_squared", "factor(maxEducLevel)", "totalHoursWorked", "factor(relab)","factor(oficio)",
-"factor(sizeFirm)","formal", "p6426", "factor(p6240)","factor(estrato1)") #Empresa y condiciones de vida M5
+"factor(sizeFirm)","formal", "p6426","factor(estrato1)") #condiciones de vida M5
 )
 
 #Ejecutar modelo
@@ -272,7 +272,7 @@ set.seed(123)
 
 run_fwl_bootstrap <- function(df,
                               controls,
-                              R = 500,
+                              R = 1000,
                               y = "log_income",
                               g = "female") {
 
@@ -291,7 +291,7 @@ boot_fun <- function(d, idx) {
 }
 
 # Ejecutar bootstrap
-boot_res <- run_fwl_bootstrap(data, controls = best_controls, R = 500)
+boot_res <- run_fwl_bootstrap(data, controls = best_controls, R = 1000)
 
 # SE bootstrap
 se_boot <- sd(boot_res$t)
@@ -330,18 +330,9 @@ boot_uncond_fun <- function(d, idx){
   coef(lm(log_income ~ female, data = dd))[["female"]]
 }
 
-set.seed(123)
-boot_uncond <- boot::boot(data, statistic = boot_uncond_fun, R = 500)
+boot_uncond <- boot::boot(data, statistic = boot_uncond_fun, R = 1000)
 se_uncond_boot <- sd(boot_uncond$t)
 
-boot_cond_fun <- function(d, idx){
-  dd <- d[idx, ]
-  coef(lm(f_best_ols, data = dd))[["female"]]
-}
-
-set.seed(123)
-boot_cond <- boot::boot(data, statistic = boot_cond_fun, R = 500)
-se_cond_boot <- sd(boot_cond$t)
 
 results_table <- data.frame(
   Specification = c("Unconditional", paste0("Conditional (", best_id, ")")),
@@ -372,185 +363,5 @@ gt_tbl <- gt(results_table) |>
     Adj_R_squared = "Adj_R²"
   )
 
-gtsave(gt_tbl, filename = "02_gender_gap_table.png", path = out_tab)
+gtsave(gt_tbl, filename = "gender_gap_table.png", path = out_tab)
 
-
-cat("\n================================================================================\n")
-cat("PASO 7: VISUALIZACIÓN PREDICTED AGE-LABOR INCOME PROFILES\n")
-cat("================================================================================\n")
-
-model_interact <- lm(  
-  log_income ~ female*(age + age_squared) +totalHoursWorked +factor(maxEducLevel) + factor(relab) + factor(oficio) + factor(sizeFirm) + formal + p6426 + factor(p6240) + factor(estrato1), data = data) # nolint
-
-cat("\nModelo interacción estimado:\n")
-print(summary(model_interact)$coefficients[c("female","age","age_squared","female:age","female:age_squared"), , drop=FALSE]) # nolint
-
-age_seq <- seq(min(data$age, na.rm = TRUE),
-               max(data$age, na.rm = TRUE),
-               by = 1)
-
-mean_hours <- mean(data$totalHoursWorked, na.rm = TRUE)
-base_relab <- levels(factor(data$relab))[1]
-base_educ  <- levels(factor(data$maxEducLevel))[1]
-base_oficio <- levels(factor(data$oficio))[1]
-base_sizeFirm <- levels(factor(data$sizeFirm))[1]
-base_estrato1 <- levels(factor(data$estrato1))[1]
-base_p6240 <- levels(factor(data$p6240))[1]
-
-
-pred_data <- expand.grid(age = age_seq, female = c(0, 1))
-pred_data$age_squared <- pred_data$age^2
-pred_data$totalHoursWorked <- mean_hours
-pred_data$formal <- mean(data$formal, na.rm = TRUE)
-pred_data$p6426 <- mean(data$p6426, na.rm = TRUE)
-
-pred_data$relab <- factor(base_relab, levels = levels(factor(data$relab)))
-pred_data$maxEducLevel <- factor(base_educ, levels = levels(factor(data$maxEducLevel)))
-pred_data$oficio <- factor(base_oficio, levels = levels(factor(data$oficio)))
-pred_data$sizeFirm <- factor(base_sizeFirm, levels = levels(factor(data$sizeFirm)))
-pred_data$p6240 <- factor(base_p6240, levels = levels(factor(data$p6240)))
-pred_data$estrato1 <- factor(base_estrato1, levels = levels(factor(data$estrato1)))
-
-pred_data$pred_log <- as.numeric(predict(model_interact, newdata = pred_data))
-pred_data$pred_income <- exp(pred_data$pred_log)
-
-pred_data$gender <- factor(pred_data$female,
-                           levels = c(0, 1),
-                           labels = c("Male", "Female"))
-
-peaks <- pred_data %>%
-  group_by(gender) %>%
-  slice_max(order_by = pred_income, n = 1, with_ties = FALSE) %>%
-  ungroup() %>%
-  mutate(label_y = pred_income * 1.05)
-
-cat("\nPeaks (por grid de edad):\n")
-print(peaks %>% select(gender, age, pred_income))
-
-cfs <- coef(model_interact)
-b_age   <- cfs[["age"]]
-b_age2  <- cfs[["age_squared"]]
-b_fage  <- if ("female:age" %in% names(cfs)) cfs[["female:age"]] else 0
-b_fage2 <- if ("female:age_squared" %in% names(cfs)) cfs[["female:age_squared"]] else 0
-
-peak_age_male_analytic <- -b_age / (2*b_age2)
-peak_age_fem_analytic  <- -(b_age + b_fage) / (2*(b_age2 + b_fage2))
-
-cat("\nPeaks analíticos (vértice):\n")
-cat(sprintf("  Peak age (Male):   %.2f\n", peak_age_male_analytic))
-cat(sprintf("  Peak age (Female): %.2f\n", peak_age_fem_analytic))
-
-peak_m <- peaks %>% filter(gender == "Male")   %>% slice(1)
-peak_f <- peaks %>% filter(gender == "Female") %>% slice(1)
-
-gap_peak_log <- peak_f$pred_log - peak_m$pred_log
-gap_peak_pct <- 100*(exp(gap_peak_log) - 1)
-
-cat("\nGap en el peak (Female vs Male, usando predicción en el peak):\n")
-cat(sprintf("  Gap log: %.4f\n", gap_peak_log))
-cat(sprintf("  Gap %%:  %.2f%%\n", gap_peak_pct))
-
-p <- ggplot(pred_data, aes(age, pred_income, color = gender)) +
-  geom_line(linewidth = 1.2) +
-  geom_point(data = peaks, size = 3) +
-  geom_text(
-    data = peaks,
-    aes(x = age, y = label_y,
-        label = paste0("Peak age: ", age,
-                       "\nIncome: ", format(round(pred_income, 0), big.mark=","))),
-    show.legend = FALSE
-  ) +
-  scale_y_continuous(expand = expansion(mult = c(0.05, 0.15))) +
-  labs(x = "Age", y = "Predicted labor income (levels)", color = "") +
-  theme_bw()
-
-print(p)
-
-ggsave(file.path(out_fig, "age_labor_income_profiles.png"),
-       plot = p, width = 10, height = 6, dpi = 300)
-
-cat(sprintf("\nGuardado: %s\n", file.path(out_fig, "Age_labor_income_profiles.png")))
-
-
-cat("\n================================================================================\n")
-cat("PASO 8: IMPLIED PEAK AGES \n")
-cat("================================================================================\n")
-
-coefs <- coef(model_interact)
-
-b_age    <- coefs[["age"]]
-b_age2   <- coefs[["age_squared"]]
-b_age_f  <- if ("female:age" %in% names(coefs)) coefs[["female:age"]] else 0
-b_age2_f <- if ("female:age_squared" %in% names(coefs)) coefs[["female:age_squared"]] else 0
-
-peak_male   <- -b_age / (2 * b_age2)
-peak_female <- -(b_age + b_age_f) / (2 * (b_age2 + b_age2_f))
-
-cat(sprintf("\nPeak age (Male):   %.3f\n", peak_male))
-cat(sprintf("Peak age (Female): %.3f\n", peak_female))
-
-boot_peak_fun <- function(d, idx){
-  dd <- d[idx, ]
-  m <- lm(log_income ~ female*(age + age_squared) +
-            totalHoursWorked +
-            factor(relab) +
-            factor(maxEducLevel),
-          data = dd)
-
-  cfs <- coef(m)
-
-  b_age    <- cfs[["age"]]
-  b_age2   <- cfs[["age_squared"]]
-  b_age_f  <- if ("female:age" %in% names(cfs)) cfs[["female:age"]] else 0
-  b_age2_f <- if ("female:age_squared" %in% names(cfs)) cfs[["female:age_squared"]] else 0
-
-  denom_m <- 2 * b_age2
-  denom_f <- 2 * (b_age2 + b_age2_f)
-
-  if (is.na(denom_m) || abs(denom_m) < 1e-10) return(c(NA_real_, NA_real_))
-  if (is.na(denom_f) || abs(denom_f) < 1e-10) return(c(NA_real_, NA_real_))
-
-  peak_m <- -b_age / denom_m
-  peak_f <- -(b_age + b_age_f) / denom_f
-
-  c(peak_m, peak_f)
-}
-
-set.seed(123)
-boot_peaks <- boot::boot(data, statistic = boot_peak_fun, R = 500)
-
-se_peak_male   <- sd(boot_peaks$t[, 1], na.rm = TRUE)
-se_peak_female <- sd(boot_peaks$t[, 2], na.rm = TRUE)
-
-ci_male   <- boot::boot.ci(boot_peaks, index = 1, type = "perc")
-ci_female <- boot::boot.ci(boot_peaks, index = 2, type = "perc")
-
-peak_table <- data.frame(
-  Group = c("Male", "Female"),
-  Peak_Age = c(as.numeric(peak_male), as.numeric(peak_female)),
-  SE_Bootstrap = c(se_peak_male, se_peak_female),
-  CI_Lower = c(ci_male$percent[4], ci_female$percent[4]),
-  CI_Upper = c(ci_male$percent[5], ci_female$percent[5])
-)
-peak_table$Peak_Age <- round(peak_table$Peak_Age, 2)
-peak_table$SE_Bootstrap <- round(peak_table$SE_Bootstrap, 2)
-peak_table$CI_Lower <- round(peak_table$CI_Lower, 2)
-peak_table$CI_Upper <- round(peak_table$CI_Upper, 2)
-
-print(peak_table, row.names = FALSE)
-
-stargazer::stargazer(
-  peak_table,
-  summary = FALSE,
-  digits = 2,
-  rownames = FALSE,
-  title = "Implied Peak Ages by Gender",
-  out = file.path(out_tab, "05_peak_ages_section2.tex")
-)
-
-cat(sprintf("\nGuardado TEX: %s\n", file.path(out_tab, "05_peak_ages_section2.tex")))
-
-ggsave(file.path(out_fig, "05_age_income_profiles_with_peaks.png"),
-       plot = p, width = 10, height = 6, dpi = 300)
-
-cat(sprintf("Guardado FIG: %s\n", file.path(out_fig, "05_age_income_profiles_with_peaks.png")))

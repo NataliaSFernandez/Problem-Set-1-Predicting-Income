@@ -1,27 +1,52 @@
-# R 
+# ── R ────────────────────────────────────────────────────────────────────────
 .Rhistory
 .RData
 .Rproj.user
 *.Rproj
+*.Rout
+*.rds
+*.RDS
 
-# Datos temporales
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.so
+.ipynb_checkpoints/
+*.ipynb
+
+# ── Conda / virtual envs ─────────────────────────────────────────────────────
+.conda/
+.venv/
+env/
+venv/
+
+# ── Datos ────────────────────────────────────────────────────────────────────
+# Archivos de datos grandes; versiona solo los datos limpios si son pequeños
+00_data/raw/
 03_temp/
 
-# Outputs (opcional: si quieres versionar figuras, quita esta línea)
-# 02_output/
-
-
-
-### macOS ###
-# General
+# ── macOS ────────────────────────────────────────────────────────────────────
 .DS_Store
 .AppleDouble
 .LSOverride
+._*
 
-
-### Windows ###
-# Windows thumbnail cache files
+# ── Windows ──────────────────────────────────────────────────────────────────
 Thumbs.db
 Thumbs.db:encryptable
 ehthumbs.db
 ehthumbs_vista.db
+Desktop.ini
+
+# ── Editores ─────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

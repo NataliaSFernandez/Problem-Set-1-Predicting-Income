@@ -1,143 +1,243 @@
 #!/bin/bash
+################################################################################
+# run_all.sh - Ejecutar todos los análisis del Problem Set 1
+################################################################################
+# Descripción:
+#   Este script ejecuta todos los scripts de preparación de datos y análisis
+#   en el orden correcto para el Problem Set 1: Predicción de Ingresos.
+#
+# Uso:
+#   bash run_all.sh
+#
+# Requisitos:
+#   - Python con paquetes de requirements.txt
+#   - R con paquetes requeridos
+#   - Conexión a internet (para scraping de datos)
+#
+# Tiempo estimado de ejecución: 20-30 minutos
+################################################################################
+
+# Salir si hay error
+set -e
+
+# Códigos de color para salida
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+# Funciones para imprimir mensajes con color
+print_header() {
+    echo -e "${BLUE}================================================================${NC}"
+    echo -e "${BLUE}$1${NC}"
+    echo -e "${BLUE}================================================================${NC}"
+}
+
+print_success() {
+    echo -e "${GREEN}[OK] $1${NC}"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[ADVERTENCIA] $1${NC}"
+}
+
+print_error() {
+    echo -e "${RED}[ERROR] $1${NC}"
+}
+
+# Función para verificar si comando existe
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
 
 ################################################################################
-# PROBLEM SET 1: PREDICCIÓN DE INGRESOS
-# Script de Reproducibilidad Completa
-################################################################################
-# Este script ejecuta todo el pipeline de análisis desde datos crudos hasta
-# resultados finales
-# Tiempo estimado: 5-7 minutos
+# VERIFICACIONES PREVIAS
 ################################################################################
 
-set -e  # Salir si hay error
+print_header "VERIFICACIONES PREVIAS"
 
-echo "================================================================================"
-echo "PROBLEM SET 1: PREDICCIÓN DE INGRESOS - PIPELINE COMPLETO"
-echo "================================================================================"
-echo ""
-
-# Verificar que existan datos crudos
-if [ ! -f "00_data/raw/geih_2018_completo.csv" ]; then
-    echo "ERROR: Datos crudos no encontrados en 00_data/raw/geih_2018_completo.csv"
-    echo "Por favor ejecute primero el scraper: python 01_code/01_data_scrapper.py"
+# Verificar Python
+if command_exists python; then
+    PYTHON_VERSION=$(python --version 2>&1 | awk '{print $2}')
+    print_success "Python encontrado: $PYTHON_VERSION"
+else
+    print_error "Python no encontrado. Por favor instalar Python"
     exit 1
 fi
 
-################################################################################
-# FASE 1: ESPECIFICACIÓN BASELINE (elimina ingresos faltantes, N=7,201)
-################################################################################
+# Verificar R
+if command_exists R; then
+    R_VERSION=$(R --version | head -1 | awk '{print $3}')
+    print_success "R encontrado: $R_VERSION"
+else
+    print_error "R no encontrado. Por favor instalar R"
+    exit 1
+fi
 
-echo "================================================================================"
-echo "FASE 1: ESPECIFICACIÓN BASELINE"
-echo "================================================================================"
-echo ""
+# Verificar Rscript
+if command_exists Rscript; then
+    print_success "Rscript encontrado"
+else
+    print_error "Rscript no encontrado. Por favor verificar instalación de R"
+    exit 1
+fi
 
-echo "[1/6] Limpieza de datos - Baseline..."
-python 01_code/02_data_cleaning.py
-echo "Listo. Output: 00_data/cleaned/data_cleaned.csv"
-echo ""
-
-echo "[2/6] Estadísticas descriptivas - Baseline..."
-python 01_code/03_descriptive_stats.py
-echo "Listo. Outputs en 02_output/tables/ y 02_output/figures/"
-echo ""
-
-echo "[3/6] Sección 1: Regresiones perfil edad-ingreso - Baseline..."
-Rscript 01_code/04_section1_age_income.R
-echo "Listo. Outputs en 02_output/tables/ y 02_output/figures/"
 echo ""
 
 ################################################################################
-# FASE 2: ESPECIFICACIÓN IMPUTADA (imputa ingresos faltantes, N=8,153)
+# INICIAR EJECUCIÓN
 ################################################################################
 
-echo "================================================================================"
-echo "FASE 2: ESPECIFICACIÓN IMPUTADA (ROBUSTEZ)"
-echo "================================================================================"
+print_header "INICIANDO PIPELINE COMPLETO DE ANÁLISIS"
+echo "Tiempo total estimado: 20-30 minutos"
+echo "Iniciado: $(date '+%Y-%m-%d %H:%M:%S')"
 echo ""
 
-echo "[4/6] Limpieza de datos - Imputada..."
-python 01_code/02_data_cleaning_imputed.py
-echo "Listo. Output: 00_data/cleaned/data_cleaned_imputed.csv"
+START_TIME=$(date +%s)
+
+################################################################################
+# PASO 0: PREPARACIÓN DE DATOS
+################################################################################
+
+print_header "PASO 0: PREPARACIÓN DE DATOS"
+
+# Paso 0.1: Scraping de Datos
+echo "Ejecutando: 00_data_scrapper.py"
+echo "Tiempo esperado: aproximadamente 2 minutos"
+STEP_START=$(date +%s)
+
+if python 01_code/00_data_scrapper.py; then
+    STEP_END=$(date +%s)
+    STEP_DURATION=$((STEP_END - STEP_START))
+    print_success "Scraping de datos completado en ${STEP_DURATION}s"
+else
+    print_error "Scraping de datos falló"
+    exit 1
+fi
+
 echo ""
 
-echo "[5/6] Estadísticas descriptivas - Imputada..."
-python 01_code/03_descriptive_stats_imputed.py
-echo "Listo. Outputs en 02_output/tables/ y 02_output/figures/"
+# Paso 0.2: Limpieza de Datos
+echo "Ejecutando: 00_data_cleaning.py"
+echo "Tiempo esperado: aproximadamente 1 minuto"
+STEP_START=$(date +%s)
+
+if python 01_code/00_data_cleaning.py; then
+    STEP_END=$(date +%s)
+    STEP_DURATION=$((STEP_END - STEP_START))
+    print_success "Limpieza de datos completada en ${STEP_DURATION}s"
+else
+    print_error "Limpieza de datos falló"
+    exit 1
+fi
+
 echo ""
 
-echo "[6/6] Sección 1: Regresiones perfil edad-ingreso - Imputada..."
-Rscript 01_code/04_section1_age_income_imputed.R
-echo "Listo. Outputs en 02_output/tables/ y 02_output/figures/"
+# Paso 0.3: Estadísticas Descriptivas (opcional)
+echo "Ejecutando: 00_descriptive_stats.py"
+echo "Tiempo esperado: aproximadamente 30 segundos"
+STEP_START=$(date +%s)
+
+if python 01_code/00_descriptive_stats.py; then
+    STEP_END=$(date +%s)
+    STEP_DURATION=$((STEP_END - STEP_START))
+    print_success "Estadísticas descriptivas completadas en ${STEP_DURATION}s"
+else
+    print_warning "Estadísticas descriptivas fallaron (no crítico)"
+fi
+
 echo ""
 
 ################################################################################
-# SECCIÓN 2: BRECHA SALARIAL DE GÉNERO (POR COMPLETAR)
+# PASO 1: ANÁLISIS PERFIL EDAD-INGRESO
 ################################################################################
 
-# Descomentar cuando la Sección 2 esté lista
-# echo "================================================================================"
-# echo "SECCIÓN 2: BRECHA DE INGRESO LABORAL POR GÉNERO"
-# echo "================================================================================"
-# echo ""
-# echo "[SECCIÓN 2] Ejecutando análisis de brecha de género..."
-# Rscript 01_code/05_section2_gender_gap.R
-# echo "Listo."
-# echo ""
+print_header "PASO 1: ANÁLISIS PERFIL EDAD-INGRESO"
+echo "Ejecutando: 01_section1_age_income.R"
+echo "Tiempo esperado: aproximadamente 8 minutos (incluye 1000 iteraciones bootstrap)"
+STEP_START=$(date +%s)
+
+if Rscript 01_code/01_section1_age_income.R; then
+    STEP_END=$(date +%s)
+    STEP_DURATION=$((STEP_END - STEP_START))
+    STEP_MINUTES=$((STEP_DURATION / 60))
+    STEP_SECONDS=$((STEP_DURATION % 60))
+    print_success "Sección 1 completada en ${STEP_MINUTES}m ${STEP_SECONDS}s"
+else
+    print_error "Sección 1 falló"
+    exit 1
+fi
+
+echo ""
 
 ################################################################################
-# SECCIÓN 3: PREDICCIÓN DE INGRESOS (POR COMPLETAR)
+# PASO 2: ANÁLISIS BRECHA SALARIAL DE GÉNERO
 ################################################################################
 
-# Descomentar cuando la Sección 3 esté lista
-# echo "================================================================================"
-# echo "SECCIÓN 3: PREDICCIÓN DE INGRESO LABORAL"
-# echo "================================================================================"
-# echo ""
-# echo "[SECCIÓN 3] Ejecutando modelos de predicción..."
-# Rscript 01_code/06_section3_prediction.R
-# echo "Listo."
-# echo ""
+print_header "PASO 2: ANÁLISIS BRECHA SALARIAL DE GÉNERO"
+echo "Ejecutando: 02_section2_gendergap_income.R"
+echo "Tiempo esperado: aproximadamente 10 minutos (incluye FWL y bootstrap)"
+STEP_START=$(date +%s)
+
+if Rscript 01_code/02_section2_gendergap_income.R; then
+    STEP_END=$(date +%s)
+    STEP_DURATION=$((STEP_END - STEP_START))
+    STEP_MINUTES=$((STEP_DURATION / 60))
+    STEP_SECONDS=$((STEP_DURATION % 60))
+    print_success "Sección 2 completada en ${STEP_MINUTES}m ${STEP_SECONDS}s"
+else
+    print_error "Sección 2 falló"
+    exit 1
+fi
+
+echo ""
 
 ################################################################################
-# RESUMEN
+# PASO 3: PREDICCIÓN DE INGRESOS Y DIAGNÓSTICOS
 ################################################################################
 
-echo "================================================================================"
-echo "PIPELINE COMPLETADO EXITOSAMENTE"
-echo "================================================================================"
+print_header "PASO 3: PREDICCIÓN DE INGRESOS Y DIAGNÓSTICOS"
+echo "Ejecutando: 03_section3_income_prediction.R"
+echo "Tiempo esperado: aproximadamente 15 minutos (incluye LOOCV y análisis de influencia)"
+STEP_START=$(date +%s)
+
+if Rscript 01_code/03_section3_income_prediction.R; then
+    STEP_END=$(date +%s)
+    STEP_DURATION=$((STEP_END - STEP_START))
+    STEP_MINUTES=$((STEP_DURATION / 60))
+    STEP_SECONDS=$((STEP_DURATION % 60))
+    print_success "Sección 3 completada en ${STEP_MINUTES}m ${STEP_SECONDS}s"
+else
+    print_error "Sección 3 falló"
+    exit 1
+fi
+
 echo ""
-echo "Archivos generados:"
+
+################################################################################
+# FINALIZACIÓN
+################################################################################
+
+END_TIME=$(date +%s)
+TOTAL_DURATION=$((END_TIME - START_TIME))
+TOTAL_MINUTES=$((TOTAL_DURATION / 60))
+TOTAL_SECONDS=$((TOTAL_DURATION % 60))
+
+print_header "TODOS LOS ANÁLISIS COMPLETADOS EXITOSAMENTE"
+echo "Tiempo total de ejecución: ${TOTAL_MINUTES} minutos ${TOTAL_SECONDS} segundos"
+echo "Finalizado: $(date '+%Y-%m-%d %H:%M:%S')"
 echo ""
-echo "Datos:"
-echo "  - 00_data/cleaned/data_cleaned.csv (N=7,201)"
-echo "  - 00_data/cleaned/data_cleaned_imputed.csv (N=8,153)"
+
+print_success "Todos los resultados guardados en:"
+echo "  - 00_data/cleaned/data_cleaned.csv"
+echo "  - 02_output/figures/"
+echo "  - 02_output/tables/"
 echo ""
-echo "Figuras:"
-echo "  - 02_output/figures/missing_heatmap.png"
-echo "  - 02_output/figures/missing_heatmap_imputed.png"
-echo "  - 02_output/figures/outliers_income_boxplot.png"
-echo "  - 02_output/figures/outliers_income_boxplot_imputed.png"
-echo "  - 02_output/figures/income_distribution_gender.png"
-echo "  - 02_output/figures/income_distribution_gender_imputed.png"
-echo "  - 02_output/figures/age_distribution.png"
-echo "  - 02_output/figures/age_distribution_imputed.png"
-echo "  - 02_output/figures/hours_distribution_gender.png"
-echo "  - 02_output/figures/hours_distribution_gender_imputed.png"
-echo "  - 02_output/figures/age_income_profile.png"
-echo "  - 02_output/figures/age_income_profile_imputed.png"
+
+print_success "Puede revisar los resultados o proceder con la preparación de la presentación."
 echo ""
-echo "Tablas:"
-echo "  - 02_output/tables/cleaning_summary.tex"
-echo "  - 02_output/tables/cleaning_summary_imputed.tex"
-echo "  - 02_output/tables/descriptive_stats_general.tex"
-echo "  - 02_output/tables/descriptive_stats_general_imputed.tex"
-echo "  - 02_output/tables/descriptive_stats_gender.tex"
-echo "  - 02_output/tables/descriptive_stats_gender_imputed.tex"
-echo "  - 02_output/tables/age_income_regressions.tex"
-echo "  - 02_output/tables/age_income_regressions_imputed.tex"
-echo "  - 02_output/tables/peak_age_estimates.tex"
-echo "  - 02_output/tables/peak_age_estimates_imputed.tex"
-echo "  - 02_output/tables/comparison_baseline_imputed.tex"
-echo ""
-echo "================================================================================"
+
+################################################################################
+# FIN
+################################################################################

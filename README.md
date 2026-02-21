@@ -51,7 +51,7 @@ Problem-Set-1-Predicting-Income/
 ├── requirements.txt                  # Dependencias
 ├── .gitignore                        # Patrones de archivos ignorados
 ├── README.md                         # Este archivo
-├── run_all.sh                        # Ejecutar todos los análisis (Mac/Linux)
+├── 00_rundirectory.sh                        # Ejecutar todos los análisis (Mac/Linux)
 └── run_all.ps1                       # Ejecutar todos los análisis (Windows PowerShell)
 ```
 
@@ -118,7 +118,7 @@ webshot::install_phantomjs()
 
 **Mac/Linux:**
 ```bash
-bash run_all.sh
+bash 00_rundirectory.sh
 ```
 
 **Windows PowerShell:**

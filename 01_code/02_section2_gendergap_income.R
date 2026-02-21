@@ -1,4 +1,4 @@
-################################################################################
+æ################################################################################
 # Problem SET 1: Predicting Income
 # Section 2: Gender–Labor Income Gap
 
@@ -80,7 +80,11 @@ if (!require(dplyr)) install.packages("dplyr")
 if (!require(boot)) install.packages("boot")
 if (!require(gt)) install.packages("gt")
 if (!require(webshot)) install.packages("webshot")
-
+# Instalar phantomjs automáticamente si no existe
+if (!webshot::is_phantomjs_installed()) {
+  cat("Instalando phantomjs...\n")
+  webshot::install_phantomjs()
+}
 # Cargar librerías
 suppressMessages({
   library(dplyr)

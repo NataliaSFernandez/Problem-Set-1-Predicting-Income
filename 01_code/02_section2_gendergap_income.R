@@ -1,39 +1,3 @@
-æ################################################################################
-# Problem SET 1: Predicting Income
-# Section 2: Gender–Labor Income Gap
-
-################################################################################
-# Problem SET 1: Predicting Income
-# Section 2: Gender–Labor Income Gap
-# Script 02: Gender_Labor_Income_Gap.R
-################################################################################
-# OBJETIVO:
-# Analizar la brecha de ingresos laborales entre hombres y mujeres en Bogotá
-# (GEIH 2018), evaluando:
-#
-# 1) La brecha incondicional (raw gender gap).
-# 2) La brecha condicional controlando por edad, horas trabajadas,
-#    tipo de vínculo laboral y nivel educativo.
-# 3) La descomposición del coeficiente de género utilizando el teorema
-#    Frisch–Waugh–Lovell (FWL).
-# 4) La estimación de errores estándar tanto analíticos (OLS) como por
-#    bootstrap.
-# 5) La comparación de perfiles edad–ingreso predichos por género.
-# 6) El cálculo de la edad de máximo ingreso (peak age) para hombres y
-#    mujeres, junto con intervalos de confianza bootstrap.
-#
-# Este análisis permite distinguir entre la brecha salarial bruta y la
-# brecha explicada por diferencias observables en características laborales
-# y de capital humano, contribuyendo a la discusión sobre el principio de
-# “equal pay for equal work”.
-#
-# INPUT:
-#   - 00_data/cleaned/data_cleaned.csv
-#
-# OUTPUT:
-#   - Tabla comparativa de brecha incondicional y condicional
-#   - Tabla de edades pico (peak ages) por género
-
 # Script 02: Gender_Labor_Income_Gap.R
 ################################################################################
 # OBJETIVO:
@@ -74,17 +38,19 @@ rm(list = ls())
 set.seed(123)
 
 #Instalar librerías
-if (!require(ggplot2)) install.packages("ggplot2")
-if (!require(stargazer)) install.packages("stargazer")
-if (!require(dplyr)) install.packages("dplyr")
-if (!require(boot)) install.packages("boot")
-if (!require(gt)) install.packages("gt")
-if (!require(webshot)) install.packages("webshot")
+if (!require(ggplot2)) install.packages("ggplot2", repos = "https://cloud.r-project.org")
+if (!require(stargazer)) install.packages("stargazer", repos = "https://cloud.r-project.org")
+if (!require(dplyr)) install.packages("dplyr", repos = "https://cloud.r-project.org")
+if (!require(boot)) install.packages("boot", repos = "https://cloud.r-project.org")
+if (!require(gt)) install.packages("gt", repos = "https://cloud.r-project.org")
+if (!require(webshot)) install.packages("webshot", repos = "https://cloud.r-project.org")
+
 # Instalar phantomjs automáticamente si no existe
 if (!webshot::is_phantomjs_installed()) {
   cat("Instalando phantomjs...\n")
   webshot::install_phantomjs()
 }
+
 # Cargar librerías
 suppressMessages({
   library(dplyr)

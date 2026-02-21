@@ -178,7 +178,7 @@ tabla_png <- tab_export |>
     decimals = 2
   )
 
-gtsave(tabla_png, filename = "model_comparison.png", path = out_tab)
+gtsave(tabla_png, filename = "model_comparison.png", path = out_tab, method = "webshot")
 
 # Best model 
 best_id <- tab$model_id[1]
@@ -365,7 +365,7 @@ gt_tbl <- gt(results_table) |>
     Adj_R_squared = "Adj_R²"
   )
 
-gtsave(gt_tbl, filename = "gender_gap_table.png", path = out_tab)
+gtsave(gt_tbl, filename = "gender_gap_table.png", path = out_tab, method = "webshot")
 
 cat("\n================================================================================\n")
 cat("PASO 7: VISUALIZACIÓN PREDICTED AGE-LABOR INCOME PROFILES INTERACCIONES\n")
@@ -633,7 +633,7 @@ gt_tbl <- gt(results_compare) |>
     SS_added = "ΔSS"
   )
 
-gtsave(gt_tbl, filename = "model_comparison_tradeoff.png", path = out_tab)
+gtsave(gt_tbl, filename = "model_comparison_tradeoff.png", path = out_tab, method = "webshot")
 
 cat(sprintf("\nGuardado PNG: %s\n", file.path(out_tab, "model_comparison_tradeoff.png")))
 
@@ -710,4 +710,4 @@ gt_tbl <- gt::gt(peak_table) |>
   gt::tab_header(title = "Implied Peak Ages by Gender") |>
   gt::fmt_number(columns = c(Peak_Age, SE_Bootstrap, CI_Lower, CI_Upper), decimals = 2)
 
-gtsave(gt_tbl, filename = "peak_ages_section2.png", path = out_tab)
+gtsave(gt_tbl, filename = "peak_ages_section2.png", path = out_tab, method = "webshot")

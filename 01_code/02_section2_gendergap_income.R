@@ -34,8 +34,6 @@
 #   - Tabla comparativa de brecha incondicional y condicional
 #   - Tabla de edades pico (peak ages) por género
 
-^G Get Help   ^O WriteOut   ^R Read File  ^Y Prev Pg    ^K Cut Text   ^C Cur Pos    
-^X Exit       ^J Justify    ^W Where is   ^V Next Pg    ^U UnCut Text ^T To Spell   
 # Script 02: Gender_Labor_Income_Gap.R
 ################################################################################
 # OBJETIVO:

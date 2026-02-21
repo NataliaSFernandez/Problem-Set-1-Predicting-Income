@@ -122,7 +122,7 @@ install.packages(c("ggplot2", "stargazer", "dplyr", "boot", "webshot",
 Desde la raíz del repositorio:
 
 ```bash
-bash 00_rundirectory.sh
+bash run_all.sh
 ```
 
 **Este script ejecuta automáticamente:**
@@ -461,12 +461,12 @@ Para Python:
 pip install -r requirements.txt
 ```
 
-### Error: "Permission denied" al ejecutar 00_rundirectory.sh
+### Error: "Permission denied" al ejecutar run_all.sh
 
 Dar permisos de ejecución:
 
 ```bash
-chmod +x 00_rundirectory.sh
+chmod +x run_all.sh
 ```
 
 ---

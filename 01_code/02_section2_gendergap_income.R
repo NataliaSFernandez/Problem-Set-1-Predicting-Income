@@ -1,39 +1,3 @@
-################################################################################
-# Problem SET 1: Predicting Income
-# Section 2: Gender–Labor Income Gap
-
-################################################################################
-# Problem SET 1: Predicting Income
-# Section 2: Gender–Labor Income Gap
-# Script 02: Gender_Labor_Income_Gap.R
-################################################################################
-# OBJETIVO:
-# Analizar la brecha de ingresos laborales entre hombres y mujeres en Bogotá
-# (GEIH 2018), evaluando:
-#
-# 1) La brecha incondicional (raw gender gap).
-# 2) La brecha condicional controlando por edad, horas trabajadas,
-#    tipo de vínculo laboral y nivel educativo.
-# 3) La descomposición del coeficiente de género utilizando el teorema
-#    Frisch–Waugh–Lovell (FWL).
-# 4) La estimación de errores estándar tanto analíticos (OLS) como por
-#    bootstrap.
-# 5) La comparación de perfiles edad–ingreso predichos por género.
-# 6) El cálculo de la edad de máximo ingreso (peak age) para hombres y
-#    mujeres, junto con intervalos de confianza bootstrap.
-#
-# Este análisis permite distinguir entre la brecha salarial bruta y la
-# brecha explicada por diferencias observables en características laborales
-# y de capital humano, contribuyendo a la discusión sobre el principio de
-# “equal pay for equal work”.
-#
-# INPUT:
-#   - 00_data/cleaned/data_cleaned.csv
-#
-# OUTPUT:
-#   - Tabla comparativa de brecha incondicional y condicional
-#   - Tabla de edades pico (peak ages) por género
-
 # Script 02: Gender_Labor_Income_Gap.R
 ################################################################################
 # OBJETIVO:
@@ -73,6 +37,7 @@
 rm(list = ls())
 set.seed(123)
 
+<<<<<<< HEAD
 options(repos = c(CRAN = "https://cloud.r-project.org"))
 
 # ------------------------------------------------------------------------------
@@ -90,6 +55,39 @@ load_or_install("stargazer")
 load_or_install("dplyr")
 load_or_install("boot")
 load_or_install("gt")
+=======
+#Instalar librerías
+if (!require(ggplot2)) install.packages("ggplot2", repos = "https://cloud.r-project.org")
+if (!require(stargazer)) install.packages("stargazer", repos = "https://cloud.r-project.org")
+if (!require(dplyr)) install.packages("dplyr", repos = "https://cloud.r-project.org")
+if (!require(boot)) install.packages("boot", repos = "https://cloud.r-project.org")
+if (!require(gt)) install.packages("gt", repos = "https://cloud.r-project.org")
+if (!require(webshot)) install.packages("webshot", repos = "https://cloud.r-project.org")
+
+# Instalar phantomjs automáticamente si no existe
+if (!webshot::is_phantomjs_installed()) {
+  cat("Instalando phantomjs...\n")
+  webshot::install_phantomjs()
+}
+
+# Cargar librerías
+suppressMessages({
+  library(dplyr)
+  library(ggplot2)
+  library(stargazer)
+  library(boot)
+  library(gt)
+  library(webshot)
+})
+# Función helper para guardar tablas gt como PNG usando webshot
+save_gt_as_png <- function(gt_obj, filename, path) {
+  temp_html <- tempfile(fileext = ".html")
+  gt::gtsave(gt_obj, filename = temp_html)
+  webshot::webshot(temp_html, file = file.path(path, filename), delay = 0.2)
+  unlink(temp_html)
+}
+
+>>>>>>> 86b4ccc8200a2e21eafbc2dab883a3874900b968
 # Configuración de rutas
 
 out_tab <- "02_output/tables/02_section2_gendergap_income"
@@ -243,7 +241,11 @@ tabla_png <- tab_export |>
     decimals = 2
   )
 
+<<<<<<< HEAD
 save_gt_robust(tabla_png, filename_base = "model_comparison", out_dir = out_tab, csv_df = tab_export)
+=======
+save_gt_as_png(tabla_png, "model_comparison.png", out_tab)
+>>>>>>> 86b4ccc8200a2e21eafbc2dab883a3874900b968
 
 # Best model 
 best_id <- tab$model_id[1]
@@ -430,7 +432,11 @@ gt_tbl <- gt(results_table) |>
     Adj_R_squared = "Adj_R²"
   )
 
+<<<<<<< HEAD
 save_gt_robust(gt_tbl, filename_base = "gender_gap_table", out_dir = out_tab, csv_df = results_table)
+=======
+save_gt_as_png(gt_tbl, "gender_gap_table.png", out_tab)
+>>>>>>> 86b4ccc8200a2e21eafbc2dab883a3874900b968
 
 cat("\n================================================================================\n")
 cat("PASO 7: VISUALIZACIÓN PREDICTED AGE-LABOR INCOME PROFILES INTERACCIONES\n")
@@ -698,7 +704,11 @@ gt_tbl <- gt(results_compare) |>
     SS_added = "ΔSS"
   )
 
+<<<<<<< HEAD
 save_gt_robust(gt_tbl, filename_base = "model_comparison_tradeoff", out_dir = out_tab, csv_df = results_compare)
+=======
+save_gt_as_png(gt_tbl, "model_comparison_tradeoff.png", out_tab)
+>>>>>>> 86b4ccc8200a2e21eafbc2dab883a3874900b968
 
 cat(sprintf("\nGuardado PNG: %s\n", file.path(out_tab, "model_comparison_tradeoff.png")))
 
@@ -775,4 +785,8 @@ gt_tbl <- gt::gt(peak_table) |>
   gt::tab_header(title = "Implied Peak Ages by Gender") |>
   gt::fmt_number(columns = c(Peak_Age, SE_Bootstrap, CI_Lower, CI_Upper), decimals = 2)
 
+<<<<<<< HEAD
 save_gt_robust(gt_tbl, filename_base = "peak_ages_section2", out_dir = out_tab, csv_df = peak_table)
+=======
+save_gt_as_png(gt_tbl, "peak_ages_section2.png", out_tab)
+>>>>>>> 86b4ccc8200a2e21eafbc2dab883a3874900b968

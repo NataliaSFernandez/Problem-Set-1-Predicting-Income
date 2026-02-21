@@ -557,8 +557,122 @@ cat(sprintf("  R² Train: %.4f | N params: %d\n\n", alt5_r2, length(coef(alt_mod
 cat("\n")
 
 # ==============================================================================
-# SECCIÓN 4: PREDICCIONES EN VALIDATION SET
+# SECCIÓN 3.3: TABLA RESUMEN DE COEFICIENTES (SIGNIFICATIVOS Y TODOS)
 # ==============================================================================
+
+cat("================================================================================\n")
+cat("SECCIÓN 3.3: RESUMEN DE COEFICIENTES - SIGNIFICATIVOS + TODOS (p-valores)\n")
+cat("================================================================================\n\n")
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Función: Extraer TODOS los coeficientes de un modelo lm
+# ─────────────────────────────────────────────────────────────────────────────
+
+extract_all_coefs <- function(model, model_name) {
+  coef_table <- summary(model)$coefficients
+  
+  # Extraer todos los coeficientes (sin filtrar por significancia)
+  result <- data.frame(
+    Model = model_name,
+    Variable = rownames(coef_table),
+    Estimate = coef_table[, "Estimate"],
+    Std.Error = coef_table[, "Std. Error"],
+    t.stat = coef_table[, "t value"],
+    p.value = coef_table[, "Pr(>|t|)"],
+    Significance = ifelse(coef_table[, "Pr(>|t|)"] < 0.001, "***",
+                         ifelse(coef_table[, "Pr(>|t|)"] < 0.01, "**",
+                                ifelse(coef_table[, "Pr(>|t|)"] < 0.05, "*",
+                                       ifelse(coef_table[, "Pr(>|t|)"] < 0.10, ".", "")))),
+    row.names = NULL
+  )
+  
+  result
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Función: Extraer solo coeficientes SIGNIFICATIVOS (p < 0.05)
+# ─────────────────────────────────────────────────────────────────────────────
+
+extract_significant_coefs <- function(model, model_name) {
+  coef_table <- summary(model)$coefficients
+  
+  # Filtrar solo coeficientes significativos (p < 0.05)
+  sig_idx <- coef_table[, "Pr(>|t|)"] < 0.05
+  sig_coefs <- coef_table[sig_idx, , drop = FALSE]
+  
+  if (nrow(sig_coefs) == 0) {
+    return(NULL)
+  }
+  
+  # Formatear para tabla
+  result <- data.frame(
+    Model = model_name,
+    Variable = rownames(sig_coefs),
+    Estimate = sig_coefs[, "Estimate"],
+    Std.Error = sig_coefs[, "Std. Error"],
+    t.stat = sig_coefs[, "t value"],
+    p.value = sig_coefs[, "Pr(>|t|)"],
+    Significance = ifelse(sig_coefs[, "Pr(>|t|)"] < 0.001, "***",
+                         ifelse(sig_coefs[, "Pr(>|t|)"] < 0.01, "**",
+                                ifelse(sig_coefs[, "Pr(>|t|)"] < 0.05, "*", ""))),
+    row.names = NULL
+  )
+  
+  result
+}
+
+# Función: Extraer medidas de resumen del modelo
+extract_model_summary <- function(model, model_name) {
+  sum_mod <- summary(model)
+  
+  data.frame(
+    Model = model_name,
+    N = nrow(model$model),
+    N_params = length(coef(model)),
+    R_squared = sum_mod$r.squared,
+    Adj_R_squared = sum_mod$adj.r.squared,
+    F_statistic = sum_mod$fstatistic["value"],
+    p_value_F = 1 - pf(sum_mod$fstatistic["value"],
+                       sum_mod$fstatistic["numdf"],
+                       sum_mod$fstatistic["dendf"]),
+    RMSE_train = sqrt(mean(resid(model)^2))
+  )
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 3.3: EXPORTAR COEFICIENTES A EXCEL
+# ─────────────────────────────────────────────────────────────────────────────
+
+cat("Extrayendo coeficientes de todos los modelos...\n\n")
+
+# Base models
+all_base0 <- extract_all_coefs(base_model0, "Base 0")
+all_base1 <- extract_all_coefs(base_model1, "Base 1")
+all_base2 <- extract_all_coefs(base_model2, "Base 2")
+all_base3 <- extract_all_coefs(base_model3, "Base 3")
+
+# Alternative models
+all_alt1 <- extract_all_coefs(alt_model1, "Alt 1")
+all_alt2 <- extract_all_coefs(alt_model2, "Alt 2")
+all_alt3 <- extract_all_coefs(alt_model3, "Alt 3")
+all_alt4 <- extract_all_coefs(alt_model4, "Alt 4")
+all_alt5 <- extract_all_coefs(alt_model5, "Alt 5")
+
+# Combinar todos en un único data.frame
+all_coefs <- rbind(
+  all_base0, all_base1, all_base2, all_base3,
+  all_alt1, all_alt2, all_alt3, all_alt4, all_alt5
+)
+
+cat(sprintf("✓ Total de coeficientes: %d\n", nrow(all_coefs)))
+cat(sprintf("  Significancia: *** (p<0.001) | ** (p<0.01) | * (p<0.05) | . (p<0.10)\n\n"))
+
+# Exportar Excel (CSV compatible)
+excel_file <- file.path(OUT_DIR_TABLES, "coefficients_models.csv")
+write.csv(all_coefs, excel_file, row.names = FALSE)
+
+cat(sprintf("✓ EXCEL GENERADO: %s\n", excel_file))
+cat("  Abre en Excel para consultar coeficientes, p-valores y significancia\n\n")
 
 cat("================================================================================\n")
 cat("SECCIÓN 4: PREDICCIONES EN VALIDATION SET\n")
@@ -1163,13 +1277,17 @@ cat("╔════════════════════════
 cat("║                     ✅ ANÁLISIS COMPLETADO EXITOSAMENTE                    ║\n")
 cat("╚════════════════════════════════════════════════════════════════════════════╝\n\n")
 
-cat("RESUMEN DE OUTPUTSUMM:\n\n")
+cat("RESUMEN DE OUTPUTS:\n\n")
 
 cat("📊 TABLAS COMPARATIVAS (Out-of-Sample):\n")
-cat(sprintf("   %s\n", file.path(OUT_DIR_TABLES, "model_comparison.tex")))
+cat(sprintf("   • %s\n", file.path(OUT_DIR_TABLES, "model_comparison.tex")))
+cat(sprintf("   • %s (compilada a PDF)\n", file.path(OUT_DIR_TABLES, "model_comparison.pdf")))
+
+cat("\n📋 TABLA DE COEFICIENTES (todos los modelos):\n")
+cat(sprintf("   • EXCEL: %s\n", file.path(OUT_DIR_TABLES, "coefficients_models.csv")))
 
 cat("\n📈 GRÁFICOS (Out-of-Sample):\n")
-cat(sprintf("   %s\n", file.path(OUT_DIR_FIGURES, "rmse_comparison.png")))
+cat(sprintf("   • %s\n", file.path(OUT_DIR_FIGURES, "rmse_comparison.png")))
 
 cat("\n📋 DIAGNÓSTICO LOOCV (Training Set):\n")
 cat(sprintf("   CSV Summary:    %s\n",

@@ -45,7 +45,7 @@ if (!require(ggplot2)) install.packages("ggplot2")
 if (!require(stargazer)) install.packages("stargazer")
 if (!require(dplyr)) install.packages("dplyr")
 if (!require(boot)) install.packages("boot")
-if (!require(gt)) install.packages("boot")
+if (!require(gt)) install.packages("gt")
 
 # Cargar librerías
 suppressMessages({

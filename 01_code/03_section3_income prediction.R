@@ -258,7 +258,7 @@ if (length(missing_must) > 0) {
 # 1.5: Convertir variables categóricas a factores
 # ─────────────────────────────────────────────────────────────────────────────
 
-control_fac <- c("maxEducLevel", "relab", "oficio", "sizeFirm", "estrato1")
+control_fac <- c("maxEducLevel", "relab", "oficio", "sizeFirm", "estrato1", "p6240")
 control_fac <- control_fac[control_fac %in% names(train_df)]
 
 cat(sprintf("\nConvirtiendo %d variables categóricas a factores...\n", length(control_fac)))
@@ -446,7 +446,7 @@ cat(sprintf("Base 2: Age + age² + hours + relab (Section 1 cond)\n  R² Train: 
             base2_r2, length(coef(base_model2))))
 
 # Base 3: Section 2 conditional (female + controles ampliados)
-control_num <- c("age", "age_squared", "totalHoursWorked", "formal", "p6426", "p6240")
+control_num <- c("age", "age_squared", "totalHoursWorked", "formal", "p6426")
 control_num <- control_num[control_num %in% names(train_df)]
 
 rhs_base3 <- c("female", control_num, paste0("factor(", control_fac, ")"))
@@ -469,7 +469,7 @@ cat("────────────────────\n\n")
 cat("ALT 1: Cubic polynomials + extended controls\n")
 cat("  Racionalidad: Captura curvatura edad-ingreso sin asumir forma paramétrica\n")
 alt_model1 <- lm(log_income ~ age + age_squared + age_cubed +
-                   totalHoursWorked + formal + p6426 + p6240 +
+                   totalHoursWorked + formal + p6426 + factor(p6240) +
                    factor(maxEducLevel) + factor(relab) + factor(oficio) +
                    factor(sizeFirm) + factor(estrato1),
                  data = train_df)
@@ -480,7 +480,7 @@ cat(sprintf("  R² Train: %.4f | N params: %d\n\n", alt1_r2, length(coef(alt_mod
 cat("ALT 2: Key interactions (age×female, edu×formal, edu×estrato)\n")
 cat("  Racionalidad: Permite retornos heterogéneos por grupo demográfico\n")
 alt_model2 <- lm(log_income ~ age + age_squared + female + totalHoursWorked +
-                   formal + p6426 + p6240 +
+                   formal + p6426 + factor(p6240) +
                    factor(maxEducLevel) + factor(relab) + factor(sizeFirm) +
                    factor(estrato1) + age_female_int + formal_edu_int +
                    edu_estrato_int,
@@ -492,7 +492,7 @@ cat(sprintf("  R² Train: %.4f | N params: %d\n\n", alt2_r2, length(coef(alt_mod
 cat("ALT 3: Occupational Fixed Effects + new variables (p6240, estrato, p6426, potExp)\n")
 cat("  Racionalidad: Heterogeneidad estructural laboral + canales no observados\n")
 alt_model3 <- lm(log_income ~ age + age_squared + female + totalHoursWorked +
-                   formal + p6426 + p6240 + potExp +
+                   formal + p6426 + factor(p6240) + potExp +
                    factor(maxEducLevel) + factor(relab) + factor(oficio) +
                    factor(sizeFirm) + factor(estrato1),
                  data = train_df)
@@ -504,7 +504,7 @@ cat("ALT 4: Cubic splines (df=5) + multiple interactions\n")
 cat("  Racionalidad: Máxima flexibilidad local en perfil edad-ingreso\n")
 terms_alt4 <- c(
   "female", names(spl_train4), paste0(names(spl_train4), "_x_female"),
-  "totalHoursWorked", "formal", "p6426", "p6240",
+  "totalHoursWorked", "formal", "p6426", "factor(p6240)",
   "factor(maxEducLevel)", "factor(relab)"
 )
 terms_alt4_ok <- sapply(terms_alt4, function(t) {
@@ -535,7 +535,7 @@ terms_alt5 <- c(
   "female", names(spl_train5),
   "totalHoursWorked", "hours_squared",
   "female_edu_int", "formal_edu_int", "potexp_estrato_int",
-  "formal", "p6426", "p6240",
+  "formal", "p6426", "factor(p6240)",
   "factor(oficio)", "factor(sizeFirm)", "factor(estrato1)",
   "factor(maxEducLevel)", "factor(relab)"
 )

@@ -46,6 +46,7 @@ if (!require(stargazer)) install.packages("stargazer")
 if (!require(dplyr)) install.packages("dplyr")
 if (!require(boot)) install.packages("boot")
 if (!require(gt)) install.packages("gt")
+if (!require(webshot)) install.packages("webshot")
 
 # Cargar librerías
 suppressMessages({
@@ -54,6 +55,7 @@ suppressMessages({
   library(stargazer)
   library(boot)
   library(gt)
+  library(webshot)
 })
 # Configuración de rutas
 

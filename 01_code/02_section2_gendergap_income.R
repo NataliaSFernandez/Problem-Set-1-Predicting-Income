@@ -328,19 +328,14 @@ boot_uncond_fun <- function(d, idx){
   coef(lm(log_income ~ female, data = dd))[["female"]]
 }
 
-
 boot_uncond <- boot::boot(data, statistic = boot_uncond_fun, R = 1000)
 se_uncond_boot <- sd(boot_uncond$t)
-
-boot_cond <- run_fwl_bootstrap(data, controls = best_controls, R = 1000)
-se_cond_boot <- sd(boot_cond$t)
-
 
 results_table <- data.frame(
   Specification = c("Unconditional", paste0("Conditional (", best_id, ")")),
   Beta_Female = c(beta_uncond, beta_cond),
   SE_Analytical = c(se_uncond_anal, se_cond_anal),
-  SE_Bootstrap = c(se_uncond_boot, se_cond_boot),
+  SE_Bootstrap = c(se_uncond_boot, se_boot),
   Adj_R_squared = c(r2_uncond, r2_cond)
 )
 

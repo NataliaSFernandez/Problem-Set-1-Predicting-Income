@@ -60,6 +60,14 @@ suppressMessages({
   library(gt)
   library(webshot)
 })
+# Función helper para guardar tablas gt como PNG usando webshot
+save_gt_as_png <- function(gt_obj, filename, path) {
+  temp_html <- tempfile(fileext = ".html")
+  gt::gtsave(gt_obj, filename = temp_html)
+  webshot::webshot(temp_html, file = file.path(path, filename), delay = 0.2)
+  unlink(temp_html)
+}
+
 # Configuración de rutas
 
 out_tab <- "02_output/tables/02_section2_gendergap_income"
@@ -178,7 +186,7 @@ tabla_png <- tab_export |>
     decimals = 2
   )
 
-gtsave(tabla_png, filename = "model_comparison.png", path = out_tab, method = "webshot")
+save_gt_as_png(tabla_png, "model_comparison.png", out_tab)
 
 # Best model 
 best_id <- tab$model_id[1]
@@ -365,7 +373,7 @@ gt_tbl <- gt(results_table) |>
     Adj_R_squared = "Adj_R²"
   )
 
-gtsave(gt_tbl, filename = "gender_gap_table.png", path = out_tab, method = "webshot")
+save_gt_as_png(gt_tbl, "gender_gap_table.png", out_tab)
 
 cat("\n================================================================================\n")
 cat("PASO 7: VISUALIZACIÓN PREDICTED AGE-LABOR INCOME PROFILES INTERACCIONES\n")
@@ -633,7 +641,7 @@ gt_tbl <- gt(results_compare) |>
     SS_added = "ΔSS"
   )
 
-gtsave(gt_tbl, filename = "model_comparison_tradeoff.png", path = out_tab, method = "webshot")
+save_gt_as_png(gt_tbl, "model_comparison_tradeoff.png", out_tab)
 
 cat(sprintf("\nGuardado PNG: %s\n", file.path(out_tab, "model_comparison_tradeoff.png")))
 
@@ -710,4 +718,4 @@ gt_tbl <- gt::gt(peak_table) |>
   gt::tab_header(title = "Implied Peak Ages by Gender") |>
   gt::fmt_number(columns = c(Peak_Age, SE_Bootstrap, CI_Lower, CI_Upper), decimals = 2)
 
-gtsave(gt_tbl, filename = "peak_ages_section2.png", path = out_tab, method = "webshot")
+save_gt_as_png(gt_tbl, "peak_ages_section2.png", out_tab)

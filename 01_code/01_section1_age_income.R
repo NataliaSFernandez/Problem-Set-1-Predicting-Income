@@ -279,6 +279,196 @@ tryCatch({
 unlink(html_temp2)
 
 # ==============================================================================
+# PASO 5B: BOOTSTRAP PARA MODELO 2 (CONDICIONAL) - COMPLEMENTO
+# ==============================================================================
+
+cat("\n================================================================================\n")
+cat("PASO 5B: BOOTSTRAP MODELO 2 - INTERVALO DE CONFIANZA EDAD PICO\n")
+cat("================================================================================\n")
+
+# Función para calcular edad pico del Modelo 2 en cada muestra bootstrap
+peak_age_boot_m2 <- function(data, indices) {
+  d <- data[indices, ]
+  model <- lm(log_income ~ age + age_squared + totalHoursWorked + factor(relab), data = d)
+  beta1 <- coef(model)["age"]
+  beta2 <- coef(model)["age_squared"]
+  peak <- -beta1 / (2 * beta2)
+  return(peak)
+}
+
+cat("\nEjecutando bootstrap para Modelo 2 (1000 repeticiones)...\n")
+cat("⏱ Esto puede tomar 5-7 minutos (modelo más complejo)...\n")
+
+set.seed(12345)  # Misma semilla para reproducibilidad
+start_time <- Sys.time()
+boot_results_m2 <- boot(data = data, statistic = peak_age_boot_m2, R = 1000)
+end_time <- Sys.time()
+
+time_taken <- round(difftime(end_time, start_time, units = "mins"), 2)
+cat(sprintf("✓ Bootstrap completado en %.1f minutos\n", time_taken))
+
+# Intervalo de confianza Modelo 2
+ci_boot_m2 <- boot.ci(boot_results_m2, type = "perc", conf = 0.95)
+
+cat(sprintf("\n MODELO 2 (Condicional):\n"))
+cat(sprintf("  Edad de pico: %.2f años\n", peak_age_m2))
+cat(sprintf("  IC 95%% (Bootstrap): [%.2f, %.2f]\n", 
+            ci_boot_m2$percent[4], ci_boot_m2$percent[5]))
+
+# Comparación
+cat(sprintf("\n COMPARACIÓN:\n"))
+cat(sprintf("  M1 (Incondicional): %.2f [%.2f, %.2f]\n", 
+            peak_age_m1, ci_boot$percent[4], ci_boot$percent[5]))
+cat(sprintf("  M2 (Condicional):   %.2f [%.2f, %.2f]\n", 
+            peak_age_m2, ci_boot_m2$percent[4], ci_boot_m2$percent[5]))
+cat(sprintf("  Desplazamiento: %.2f años\n", peak_age_m2 - peak_age_m1))
+
+# Verificar si intervalos se superponen
+ic_m1_upper <- ci_boot$percent[5]
+ic_m2_lower <- ci_boot_m2$percent[4]
+
+if (ic_m1_upper < ic_m2_lower) {
+  cat("  ✓ Intervalos NO se superponen → Diferencia estadísticamente significativa\n")
+} else {
+  cat("  ⚠ Intervalos se superponen parcialmente\n")
+}
+
+# ==============================================================================
+# GENERAR TABLA COMPARATIVA (AMBOS MODELOS)
+# ==============================================================================
+
+cat("\nGenerando tabla comparativa (ambos modelos)...\n")
+
+# Tabla HTML comparativa
+peak_html_both <- sprintf("<!DOCTYPE html>
+<html>
+<head>
+<meta charset='UTF-8'>
+<style>
+body { 
+  background-color: white; 
+  padding: 30px; 
+  font-family: 'Arial', sans-serif; 
+}
+table { 
+  background-color: white; 
+  border-collapse: collapse; 
+  margin: 20px auto;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+td, th { 
+  padding: 12px 20px; 
+  border: 1px solid #333; 
+  text-align: center;
+}
+th { 
+  background-color: #f8f9fa; 
+  font-weight: bold;
+}
+caption { 
+  font-size: 18px; 
+  font-weight: bold; 
+  margin-bottom: 15px; 
+  color: #333;
+}
+.header-row {
+  background-color: #e9ecef;
+}
+</style>
+</head>
+<body>
+<table>
+<caption>Peak Age of Earnings - Bootstrap Estimates</caption>
+<tr class='header-row'>
+  <th></th>
+  <th>Unconditional</th>
+  <th>Conditional</th>
+</tr>
+<tr>
+  <td style='text-align:left; font-weight:bold;'>Peak Age (years)</td>
+  <td>%.2f</td>
+  <td>%.2f</td>
+</tr>
+<tr>
+  <td style='text-align:left; font-weight:bold;'>95%% CI Lower Bound</td>
+  <td>%.2f</td>
+  <td>%.2f</td>
+</tr>
+<tr>
+  <td style='text-align:left; font-weight:bold;'>95%% CI Upper Bound</td>
+  <td>%.2f</td>
+  <td>%.2f</td>
+</tr>
+<tr style='border-top: 2px solid #333;'>
+  <td style='text-align:left; font-style:italic;'>Model Details</td>
+  <td colspan='2'></td>
+</tr>
+<tr>
+  <td style='text-align:left;'>Bootstrap Replications</td>
+  <td>1000</td>
+  <td>1000</td>
+</tr>
+<tr>
+  <td style='text-align:left;'>Controls Included</td>
+  <td>No</td>
+  <td>Yes</td>
+</tr>
+</table>
+</body>
+</html>",
+  peak_age_m1, peak_age_m2,
+  ci_boot$percent[4], ci_boot_m2$percent[4],
+  ci_boot$percent[5], ci_boot_m2$percent[5]
+)
+
+# Guardar HTML
+html_temp3 <- tempfile(fileext = ".html")
+writeLines(peak_html_both, html_temp3)
+
+# Convertir a PNG
+tryCatch({
+  webshot(html_temp3, 
+          file = "02_output/tables/01_section1_age_income/peak_age_estimates_both.png",
+          vwidth = 800,
+          vheight = 400,
+          zoom = 2)
+  cat("✓ Guardado: 02_output/tables/01_section1_age_income/peak_age_estimates_both.png\n")
+}, error = function(e) {
+  cat("⚠ AVISO: No se pudo generar PNG comparativo\n")
+})
+
+# Guardar también versión TEX comparativa
+peak_table_both <- sprintf("\\begin{table}[h]
+\\centering
+\\caption{Peak Age of Earnings - Bootstrap Estimates (Both Models)}
+\\label{tab:peak_age_both}
+\\begin{tabular}{lcc}
+\\hline\\hline
+& Unconditional & Conditional \\\\
+\\hline
+Peak Age (years) & %.2f & %.2f \\\\
+95\\%% CI Lower Bound & %.2f & %.2f \\\\
+95\\%% CI Upper Bound & %.2f & %.2f \\\\
+\\hline
+Bootstrap Replications & 1000 & 1000 \\\\
+Controls Included & No & Yes \\\\
+\\hline\\hline
+\\end{tabular}
+\\end{table}", 
+  peak_age_m1, peak_age_m2,
+  ci_boot$percent[4], ci_boot_m2$percent[4],
+  ci_boot$percent[5], ci_boot_m2$percent[5]
+)
+
+writeLines(peak_table_both, "02_output/tables/01_section1_age_income/peak_age_estimates_both.tex")
+cat("✓ Guardado: 02_output/tables/01_section1_age_income/peak_age_estimates_both.tex\n")
+
+unlink(html_temp3)
+
+cat("\n✓ Paso 5B completado: Bootstrap Modelo 2 y tabla comparativa generados\n")
+
+
+# ==============================================================================
 # PASO 6: GRÁFICO DE PERFIL EDAD-INGRESO
 # ==============================================================================
 

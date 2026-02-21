@@ -51,11 +51,11 @@ Este diccionario describe las variables utilizadas en el Problem Set 1. Se basa 
 **Valores:** 
 - 1 = Ninguno
 - 2 = Preescolar
-- 3 = Primaria
-- 4 = Secundaria
-- 5 = Media
-- 6 = Superior/Universitaria
-- 7 = Posgrado  
+- 3 = Primaria (1-4)
+- 4 = Primaria completa (5)
+- 5 = Secundaria incompleta (6-10)
+- 6 = Secundaria completa (11)
+- 7 = Educación terciaria (técnica, tecnológica o universitaria) 
 **Uso en PS1:** Control de capital humano pre-mercado  
 **Justificación:** Proxy de habilidades y productividad observada
 
@@ -85,6 +85,12 @@ Este diccionario describe las variables utilizadas en el Problem Set 1. Se basa 
 **Valores:** Códigos de 1-99 (clasificación CIUO-08)  
 **Uso en PS1:** Efectos fijos de ocupación  
 **Justificación:** Aproxima comparaciones de igual trabajo
+oficio	40	"Director, gerente de   ventas"
+oficio	41	"Comerciante,   propietario"
+oficio	42	"Jefes de ventas,   compradores"
+oficio	43	"Agente de ventas,   representante comercial, comisionista"
+oficio	44	"Agente de seguros,   inmobiliarios, de cambio y bolsa, subastadores, jefes de ventas de   intangibles, comisionista de propiedad raiz, promotor de salud"
+oficio	45	"Vendedores, ambulantes, a   domicilio, de loterías y periódicos, mercaderistas"
 
 ### formal
 **Definición:** Indicador de formalidad laboral  
@@ -98,15 +104,12 @@ Este diccionario describe las variables utilizadas en el Problem Set 1. Se basa 
 
 ### sizeFirm
 **Definición:** Tamaño de la firma por categorías  
-**Tipo:** Categórica ordinal  
-**Variable origen:** Creada a partir de p6870 (número de empleados)  
-**Categorías típicas:**
-- Microempresa: 1-10 empleados
-- Pequeña: 11-50
-- Mediana: 51-200
-- Grande: 200+  
-**Uso en PS1:** Control de heterogeneidad de firmas  
-**Justificación:** Premia salarial por tamaño de firma
+**Tipo:** Categórica 
+**sizeFirm	1	self-employed**
+**sizeFirm	2	2-5 workers**
+**sizeFirm	3	6-10 workers**
+**sizeFirm	4	11-50**
+**sizeFirm	5	>50**
 
 ### p6240
 **Definición:** Actividad económica / sector en el que trabajó la semana pasada  

@@ -1,11 +1,12 @@
-python 
-
+# Python packages
 streamlit
 pandas
 python-docx
 openpyxl
 jinja2
-
-
-R
-library(ggplot2)
+beautifulsoup4
+requests
+scipy
+numpy
+matplotlib
+seaborn

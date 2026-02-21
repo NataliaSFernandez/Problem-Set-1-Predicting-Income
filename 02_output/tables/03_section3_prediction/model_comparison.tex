@@ -1,18 +1,23 @@
 
 % Table created by stargazer v.5.2.3 by Marek Hlavac, Social Policy Institute. E-mail: marek.hlavac at gmail.com
-% Date and time: jue, feb. 19, 2026 - 1:09:32 p. m.
+% Date and time: Fri, Feb 20, 2026 - 20:57:38
 \begin{table}[!htbp] \centering 
-  \caption{Model Comparison: Out-of-Sample Predictive Performance} 
-  \label{tab:model_comparison} 
-\begin{tabular}{@{\extracolsep{5pt}} cccc} 
+  \caption{Income Prediction: Comparison of Alternative Models} 
+  \label{tab:alternative_models_unified} 
+\begin{tabular}{@{\extracolsep{5pt}} ccccccc} 
 \\[-1.8ex]\hline 
 \hline \\[-1.8ex] 
-Modelo & R2\_Train & RMSE\_Validation & Best \\ 
+Model & Type & RMSE\_Valid & N\_valid\_used & R2\_Train & Improvement\_Pct & Rank \\ 
 \hline \\[-1.8ex] 
-Sección 1 - Incondicional (age + age²) & $0.0499$ & $0.8918$ &  \\ 
-Sección 1 - Condicional (age + age² + hours + relab) & $0.2323$ & $0.8117$ &  \\ 
-Sección 2 - Incondicional (female) & $0.0171$ & $0.9065$ &  \\ 
-Sección 2 - Condicional (female + controles) & $0.6249$ & $0.5808$ & \textasteriskcentered  \\ 
+Base 0: female & Base & $0.9064$ & $4,498$ & $0.0171$ & $$-$1.6476$ & $9$ \\ 
+Base 1: age+age² & Base & $0.8917$ & $4,498$ & $0.0499$ & $0$ & $8$ \\ 
+Base 2: Base1+hours+relab & Base & $0.8117$ & $4,498$ & $0.2323$ & $8.9707$ & $7$ \\ 
+Base 3: female+controls & Base & $0.5690$ & $4,498$ & $0.6391$ & $36.1895$ & $3$ \\ 
+Alt 1: poly³ & Alternative & $0.5717$ & $4,498$ & $0.6356$ & $35.8827$ & $4$ \\ 
+Alt 2: interactions & Alternative & $0.5940$ & $4,498$ & $0.6030$ & $33.3806$ & $5$ \\ 
+Alt 3: FE+new vars & Alternative & $0.5687$ & $4,498$ & $0.6395$ & $36.2241$ & $2$ \\ 
+Alt 4: splines(df=5) & Alternative & $0.6544$ & $4,498$ & $0.5073$ & $26.6131$ & $6$ \\ 
+Alt 5: integrated & Alternative & $0.5602$ & $4,498$ & $0.6544$ & $37.1816$ & $1$ \\ 
 \hline \\[-1.8ex] 
 \end{tabular} 
 \end{table} 

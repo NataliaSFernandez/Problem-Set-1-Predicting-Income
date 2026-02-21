@@ -37,25 +37,6 @@
 rm(list = ls())
 set.seed(123)
 
-<<<<<<< HEAD
-options(repos = c(CRAN = "https://cloud.r-project.org"))
-
-# ------------------------------------------------------------------------------
-# Paquetes (instalar si hace falta) - robusto
-# ------------------------------------------------------------------------------
-load_or_install <- function(pkg) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg, dependencies = TRUE)
-  }
-  suppressPackageStartupMessages(library(pkg, character.only = TRUE))
-}
-
-load_or_install("ggplot2")
-load_or_install("stargazer")
-load_or_install("dplyr")
-load_or_install("boot")
-load_or_install("gt")
-=======
 #Instalar librerías
 if (!require(ggplot2)) install.packages("ggplot2", repos = "https://cloud.r-project.org")
 if (!require(stargazer)) install.packages("stargazer", repos = "https://cloud.r-project.org")
@@ -87,7 +68,6 @@ save_gt_as_png <- function(gt_obj, filename, path) {
   unlink(temp_html)
 }
 
->>>>>>> 86b4ccc8200a2e21eafbc2dab883a3874900b968
 # Configuración de rutas
 
 out_tab <- "02_output/tables/02_section2_gendergap_income"
@@ -95,41 +75,6 @@ out_fig <- "02_output/figures/02_section2_gendergap_income"
 
 if (!dir.exists(out_tab)) dir.create(out_tab, recursive = TRUE, showWarnings = FALSE)
 if (!dir.exists(out_fig)) dir.create(out_fig, recursive = TRUE, showWarnings = FALSE)
-
-# ------------------------------------------------------------------------------
-# Helper: guardar tablas gt de forma robusta
-#   - Intenta PNG (requiere webshot2)
-#   - Si falla, guarda HTML y opcionalmente CSV (para Excel)
-# ------------------------------------------------------------------------------
-save_gt_robust <- function(gt_obj, filename_base, out_dir, csv_df = NULL) {
-  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-
-  # Intentar PNG
-  saved_png <- FALSE
-  try({
-    if (!requireNamespace("webshot2", quietly = TRUE)) {
-      install.packages("webshot2", dependencies = TRUE)
-    }
-    if (requireNamespace("webshot2", quietly = TRUE)) {
-      gtsave(gt_obj, filename = paste0(filename_base, ".png"), path = out_dir)
-      saved_png <- TRUE
-    }
-  }, silent = TRUE)
-
-  if (!saved_png) {
-    # HTML siempre debe funcionar
-    gtsave(gt_obj, filename = paste0(filename_base, ".html"), path = out_dir)
-
-    # CSV opcional para trazabilidad / Excel
-    if (!is.null(csv_df) && is.data.frame(csv_df)) {
-      utils::write.csv(csv_df, file.path(out_dir, paste0(filename_base, ".csv")), row.names = FALSE)
-    }
-
-    message("[WARN] No se pudo guardar PNG (requiere webshot2). Guardé HTML", 
-            if (!is.null(csv_df)) " + CSV" else "",
-            " en: ", out_dir)
-  }
-}
 
 cat("\n================================================================================\n") # nolint
 cat("PASO 1: CARGAR DATOS LIMPIOS\n")
@@ -241,11 +186,7 @@ tabla_png <- tab_export |>
     decimals = 2
   )
 
-<<<<<<< HEAD
-save_gt_robust(tabla_png, filename_base = "model_comparison", out_dir = out_tab, csv_df = tab_export)
-=======
 save_gt_as_png(tabla_png, "model_comparison.png", out_tab)
->>>>>>> 86b4ccc8200a2e21eafbc2dab883a3874900b968
 
 # Best model 
 best_id <- tab$model_id[1]
@@ -432,11 +373,7 @@ gt_tbl <- gt(results_table) |>
     Adj_R_squared = "Adj_R²"
   )
 
-<<<<<<< HEAD
-save_gt_robust(gt_tbl, filename_base = "gender_gap_table", out_dir = out_tab, csv_df = results_table)
-=======
 save_gt_as_png(gt_tbl, "gender_gap_table.png", out_tab)
->>>>>>> 86b4ccc8200a2e21eafbc2dab883a3874900b968
 
 cat("\n================================================================================\n")
 cat("PASO 7: VISUALIZACIÓN PREDICTED AGE-LABOR INCOME PROFILES INTERACCIONES\n")
@@ -704,11 +641,7 @@ gt_tbl <- gt(results_compare) |>
     SS_added = "ΔSS"
   )
 
-<<<<<<< HEAD
-save_gt_robust(gt_tbl, filename_base = "model_comparison_tradeoff", out_dir = out_tab, csv_df = results_compare)
-=======
 save_gt_as_png(gt_tbl, "model_comparison_tradeoff.png", out_tab)
->>>>>>> 86b4ccc8200a2e21eafbc2dab883a3874900b968
 
 cat(sprintf("\nGuardado PNG: %s\n", file.path(out_tab, "model_comparison_tradeoff.png")))
 
@@ -785,8 +718,4 @@ gt_tbl <- gt::gt(peak_table) |>
   gt::tab_header(title = "Implied Peak Ages by Gender") |>
   gt::fmt_number(columns = c(Peak_Age, SE_Bootstrap, CI_Lower, CI_Upper), decimals = 2)
 
-<<<<<<< HEAD
-save_gt_robust(gt_tbl, filename_base = "peak_ages_section2", out_dir = out_tab, csv_df = peak_table)
-=======
 save_gt_as_png(gt_tbl, "peak_ages_section2.png", out_tab)
->>>>>>> 86b4ccc8200a2e21eafbc2dab883a3874900b968

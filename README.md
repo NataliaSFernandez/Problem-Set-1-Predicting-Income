@@ -30,7 +30,7 @@ Problem-Set-1-Predicting-Income/
 │   ├── 00_data_scrapper.py         # Web scraping de GEIH 2018
 │   ├── 00_data_cleaning.py         # Limpieza y preparación de datos
 │   ├── 00_descriptive_stats.py     # Estadísticas descriptivas
-│   ├── 00_rundirectory.R           # Guía de ejecución para replicabilidad con run_all.sh
+│   ├── 00_rundirectory.R           # Script principal - Guía de ejecución para replicabilidad ejecuta pipeline completo
 │   ├── 01_section1_age_income.R    # Sección 1: Perfil edad-ingreso
 │   ├── 02_section2_gendergap_income.R  # Sección 2: Brecha de género
 │   └── 03_section3_income_prediction.R # Sección 3: Predicción
@@ -48,7 +48,7 @@ Problem-Set-1-Predicting-Income/
 │   │   └── 03_section3_prediction/
 │   └── 05_diagnostic_analysis/     # Diagnósticos LOOCV
 │
-├── run_all.sh              # ⭐ Script principal - ejecuta pipeline completo
+├── run_all.sh                      # ejecuta pipeline completo
 ├── README.md                       # Este archivo
 ├── requirements.txt                # Dependencias Python
 └── .gitignore                      # Archivos excluidos de Git
@@ -120,9 +120,19 @@ install.packages(c("ggplot2", "stargazer", "dplyr", "boot", "webshot",
 ### Paso 3: Ejecutar el Pipeline Completo
 
 Desde la raíz del repositorio:
+```bash
+Rscript 01_code/00_rundirectory.R
+```
 
+O desde R:
+```r
+source("01_code/00_rundirectory.R")
+```
+
+O desde run_all.sh
 ```bash
 bash run_all.sh
+```
 ```
 
 **Este script ejecuta automáticamente:**
